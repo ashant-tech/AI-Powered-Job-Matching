@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.db
+backend/.env
+backend/uploads/cvs/*
+!backend/uploads/cvs/.gitkeep
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+frontend/.env*.local
+
+# Misc
+.DS_Store
+.idea/
+.vscode/

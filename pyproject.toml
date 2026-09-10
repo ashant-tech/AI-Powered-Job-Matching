@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 130
+target-version = "py310"
+src = ["backend", "job-collector"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "sources", "processors"]
