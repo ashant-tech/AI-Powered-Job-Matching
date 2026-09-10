@@ -35,11 +35,18 @@ The system will then match the candidate with relevant job opportunities and not
 
 ## Proposed Technologies
 
-* Frontend: React / Next.js
-* Backend: Node.js / Express.js
-* Database: PostgreSQL
-* AI: Python, NLP, Machine Learning
-* Version Control: Git / GitHub
+Frontend: Next.js, React, TypeScript, Tailwind CSS
+Backend: Python, FastAPI, SQLAlchemy
+AI/NLP: Python, Sentence Transformers, Scikit-learn, LLM API
+CV Processing: PyMuPDF, python-docx, spaCy
+Database: PostgreSQL
+Authentication: JWT, bcrypt
+Job Collection: Job APIs, Python
+Notifications: Email, SMS, In-app
+Tools: Git, GitHub, VS Code, Postman, Docker
+Deployment: Docker + Cloud
+
+Core stack: Next.js + FastAPI/Python + AI/NLP + PostgreSQL.
 
 ## Project Status
 
