@@ -16,6 +16,18 @@ users when relevant jobs appear.
 
 **MVP scaffold** – all layers are wired end-to-end (auth, CV upload & analysis, jobs, matching, notifications). AI components use a rule-based skill taxonomy plus sentence embeddings and can be upgraded independently.
 
+## Technologies
+
+* Frontend: Next.js, React, TypeScript, Tailwind CSS
+* Backend: Python, FastAPI, SQLAlchemy
+* AI/NLP: Sentence Transformers (with an offline hashed-embedding fallback), skill taxonomy
+* CV Processing: pypdf, python-docx
+* Database: PostgreSQL (SQLite for local development)
+* Authentication: JWT, bcrypt
+* Job Collection: public job APIs / RSS feeds, Python
+* Notifications: in-app, email, SMS
+* Tools: Git, GitHub, Docker
+
 ## Structure
 
 | Directory | Stack | Purpose |
