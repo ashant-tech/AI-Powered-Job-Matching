@@ -2,7 +2,7 @@
 Source 3 - RSS feed job aggregator
 """
 import feedparser
-from typing import List, Dict
+
 import time
 
 class Source3:
@@ -10,7 +10,7 @@ class Source3:
         self.name = "Source3"
         self.rss_url = "https://example-job-feed.com/rss"
     
-    def fetch_jobs(self) -> List[Dict]:
+    def fetch_jobs(self) -> list[dict]:
         """Fetch jobs from RSS feed"""
         jobs = []
         
@@ -39,7 +39,7 @@ class Source3:
         
         return jobs
     
-    def parse_rss_entry(self, entry) -> Dict:
+    def parse_rss_entry(self, entry) -> dict:
         """Parse individual RSS entry"""
         # Implement RSS entry parsing
         pass

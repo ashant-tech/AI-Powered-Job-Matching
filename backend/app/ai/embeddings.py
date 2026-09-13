@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Dict
+
 import json
 
 class EmbeddingGenerator:
@@ -37,7 +37,7 @@ class EmbeddingGenerator:
         
         return embedding
     
-    def generate_embeddings_batch(self, texts: List[str]) -> List[np.ndarray]:
+    def generate_embeddings_batch(self, texts: list[str]) -> list[np.ndarray]:
         """
         Generate embeddings for multiple texts.
         """
@@ -57,8 +57,8 @@ class EmbeddingGenerator:
         return dot_product / (norm1 * norm2)
     
     def find_most_similar(self, query_embedding: np.ndarray, 
-                         candidate_embeddings: List[np.ndarray],
-                         top_k: int = 5) -> List[tuple]:
+                         candidate_embeddings: list[np.ndarray],
+                         top_k: int = 5) -> list[tuple]:
         """
         Find the most similar embeddings to a query.
         """

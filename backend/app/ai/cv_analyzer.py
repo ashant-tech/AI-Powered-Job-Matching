@@ -1,7 +1,7 @@
 import re
-from typing import Dict, List
 
-def analyze_cv_text(cv_text: str) -> Dict:
+
+def analyze_cv_text(cv_text: str) -> dict:
     """
     Analyze CV text and extract structured information.
     This is a simplified version - in production, you'd use NLP/ML models.

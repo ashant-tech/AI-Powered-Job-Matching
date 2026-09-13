@@ -2,7 +2,7 @@
 Source 2 - Another job board scraper
 """
 import requests
-from typing import List, Dict
+
 import time
 
 class Source2:
@@ -11,7 +11,7 @@ class Source2:
         self.base_url = "https://another-job-board.com"
         self.api_key = "your-api-key"  # Configure this
     
-    def fetch_jobs(self) -> List[Dict]:
+    def fetch_jobs(self) -> list[dict]:
         """Fetch jobs from Source2 API"""
         jobs = []
         
@@ -46,7 +46,7 @@ class Source2:
         
         return jobs
     
-    def fetch_jobs_by_category(self, category: str) -> List[Dict]:
+    def fetch_jobs_by_category(self, category: str) -> list[dict]:
         """Fetch jobs by specific category"""
         # Implement category-based fetching
         pass

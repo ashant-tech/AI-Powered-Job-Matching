@@ -15,7 +15,7 @@ def get_password_hash(password: str) -> str:
     """
     return pwd_context.hash(password)
 
-def validate_password_strength(password: str) -> tuple[bool, Optional[str]]:
+def validate_password_strength(password: str) -> tuple:
     """
     Validate password strength.
     Returns (is_valid, error_message)

@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+
 
 def clean_text(text: str) -> str:
     """
@@ -27,7 +27,7 @@ def clean_text(text: str) -> str:
     
     return text.strip()
 
-def extract_email(text: str) -> Optional[str]:
+def extract_email(text: str) -> str | None:
     """
     Extract email address from text.
     """
@@ -35,7 +35,7 @@ def extract_email(text: str) -> Optional[str]:
     emails = re.findall(email_pattern, text)
     return emails[0] if emails else None
 
-def extract_phone(text: str) -> Optional[str]:
+def extract_phone(text: str) -> str | None:
     """
     Extract phone number from text.
     """

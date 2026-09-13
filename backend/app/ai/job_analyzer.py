@@ -1,8 +1,8 @@
 import re
-from typing import Dict, List
+
 import json
 
-def analyze_job_description(job_description: str) -> Dict:
+def analyze_job_description(job_description: str) -> dict:
     """
     Analyze job description and extract structured information.
     """
@@ -55,7 +55,7 @@ def analyze_job_description(job_description: str) -> Dict:
     
     return analysis
 
-def extract_job_skills(job_description: str, requirements: str = None) -> List[str]:
+def extract_job_skills(job_description: str, requirements: str = None) -> list[str]:
     """
     Extract skills from job description and requirements.
     """

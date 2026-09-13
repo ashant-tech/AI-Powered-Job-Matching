@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import UploadFile
 import os
 import json
-from typing import Optional
+
 from app.models.cv import CV
 from app.schemas.cv import CVCreate, CVAnalysis
 from app.config.settings import settings
@@ -54,7 +54,7 @@ class CVService:
         
         return db_cv
 
-    def get_cv(self, cv_id: int) -> Optional[CV]:
+    def get_cv(self, cv_id: int) -> CV | None:
         return self.db.query(CV).filter(CV.id == cv_id).first()
 
     def get_user_cvs(self, user_id: int) -> list[CV]:

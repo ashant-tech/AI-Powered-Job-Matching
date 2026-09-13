@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from typing import List
+
 import json
+from typing import List
 from app.models.match import Match
 from app.models.job import Job
 from app.models.cv import CV

@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from typing import Optional
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.config.settings import settings
@@ -13,10 +12,10 @@ class AuthService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_user_by_email(self, email: str) -> Optional[User]:
+    def get_user_by_email(self, email: str) -> User | None:
         return self.db.query(User).filter(User.email == email).first()
 
-    def get_user_by_id(self, user_id: int) -> Optional[User]:
+    def get_user_by_id(self, user_id: int) -> User | None:
         return self.db.query(User).filter(User.id == user_id).first()
 
     def create_user(self, user: UserCreate) -> User:
@@ -34,7 +33,7 @@ class AuthService:
         self.db.refresh(db_user)
         return db_user
 
-    def authenticate_user(self, email: str, password: str) -> Optional[User]:
+    def authenticate_user(self, email: str, password: str) -> User | None:
         user = self.get_user_by_email(email)
         if not user:
             return None

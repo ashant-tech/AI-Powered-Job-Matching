@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Optional
+
 from app.config.settings import settings
 
 class EmailService:
@@ -16,7 +16,7 @@ class EmailService:
         to_email: str,
         subject: str,
         body: str,
-        html_body: Optional[str] = None
+        html_body: str | None = None
     ) -> bool:
         """
         Send an email using SMTP.

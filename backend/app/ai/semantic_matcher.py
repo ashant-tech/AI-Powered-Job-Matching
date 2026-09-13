@@ -1,5 +1,4 @@
 import json
-from typing import Dict, List
 from app.models.cv import CV
 from app.models.job import Job
 
@@ -54,7 +53,7 @@ class SemanticMatcher:
         
         return round(score, 2)
 
-    def _calculate_skill_match(self, cv_skills: List[str], job_skills: List[str]) -> float:
+    def _calculate_skill_match(self, cv_skills: list[str], job_skills: list[str]) -> float:
         """
         Calculate skill match percentage.
         """

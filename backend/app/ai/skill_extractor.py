@@ -1,5 +1,5 @@
 import re
-from typing import List
+
 
 # Common technical skills to look for
 TECHNICAL_SKILLS = [
@@ -21,7 +21,7 @@ SOFT_SKILLS = [
     "project management", "analytical", "strategic thinking", "mentoring", "coaching"
 ]
 
-def extract_skills(text: str) -> List[str]:
+def extract_skills(text: str) -> list[str]:
     """
     Extract skills from CV text using pattern matching.
     In production, this would use NLP/ML models for better accuracy.
@@ -61,7 +61,7 @@ def extract_skills(text: str) -> List[str]:
     
     return found_skills
 
-def categorize_skills(skills: List[str]) -> dict:
+def categorize_skills(skills: list[str]) -> dict:
     """
     Categorize skills into technical and soft skills.
     """

@@ -1,7 +1,8 @@
+
 from typing import List
 from app.models.match import Match
 
-def rank_matches(matches: List[Match]) -> List[Match]:
+def rank_matches(matches: list[Match]) -> list[Match]:
     """
     Rank matches by match score and other factors.
     """
@@ -17,7 +18,7 @@ def rank_matches(matches: List[Match]) -> List[Match]:
     
     return ranked
 
-def _apply_time_decay(matches: List[Match]) -> List[Match]:
+def _apply_time_decay(matches: list[Match]) -> list[Match]:
     """
     Apply time decay to matches - newer matches get a slight boost.
     """
@@ -33,7 +34,7 @@ def _apply_time_decay(matches: List[Match]) -> List[Match]:
     
     return matches
 
-def _apply_diversity_boost(matches: List[Match]) -> List[Match]:
+def _apply_diversity_boost(matches: list[Match]) -> list[Match]:
     """
     Apply diversity boost to avoid clustering of similar job types.
     """
@@ -58,7 +59,7 @@ def calculate_match_quality_score(match: Match) -> float:
     
     return round(quality_score, 2)
 
-def filter_low_quality_matches(matches: List[Match], threshold: float = 30.0) -> List[Match]:
+def filter_low_quality_matches(matches: list[Match], threshold: float = 30.0) -> list[Match]:
     """
     Filter out matches below a quality threshold.
     """
@@ -70,36 +71,13 @@ def get_match_explanation(match: Match) -> dict:
     """
     explanation = {
         "overall_score": match.match_score,
-        "factors": []
-    }
-    
-    # Skill matching factor
-    if match.cv and match.cv.skills:
-        try:
-            import json
-            cv_skills = json.loads(match.cv.skills)
-            explanation["factors"].append({
-                "factor": "Skill Alignment",
+        "factors": [
+            {
+                "factor": "Overall Match Score",
                 "impact": "High",
-                "details": f"Found {len(cv_skills)} relevant skills in your CV"
-            })
-        except:
-            pass
-    
-    # Experience factor
-    if match.cv and match.cv.experience:
-        explanation["factors"].append({
-            "factor": "Experience Match",
-            "impact": "Medium",
-            "details": "Your experience aligns with job requirements"
-        })
-    
-    # Location factor
-    if match.job and match.job.location:
-        explanation["factors"].append({
-            "factor": "Location",
-            "impact": "Medium",
-            "details": f"Job location: {match.job.location}"
-        })
+                "details": f"Match score based on skills, experience, and requirements alignment"
+            }
+        ]
+    }
     
     return explanation

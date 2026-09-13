@@ -3,7 +3,7 @@ Source 1 - Example job board scraper
 """
 import requests
 from bs4 import BeautifulSoup
-from typing import List, Dict
+
 import time
 
 class Source1:
@@ -11,7 +11,7 @@ class Source1:
         self.name = "Source1"
         self.base_url = "https://example-job-board.com"
     
-    def fetch_jobs(self) -> List[Dict]:
+    def fetch_jobs(self) -> list[dict]:
         """Fetch jobs from Source1"""
         jobs = []
         
@@ -45,7 +45,7 @@ class Source1:
         
         return jobs
     
-    def parse_job_page(self, url: str) -> Dict:
+    def parse_job_page(self, url: str) -> dict:
         """Parse individual job page"""
         # Implement detailed job page parsing
         pass

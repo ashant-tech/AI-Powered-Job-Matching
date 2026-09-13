@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import List
 from app.models.job import Job
 from app.schemas.job import JobCreate
 
@@ -14,7 +14,7 @@ class JobService:
         self.db.refresh(db_job)
         return db_job
 
-    def get_job(self, job_id: int) -> Optional[Job]:
+    def get_job(self, job_id: int) -> Job | None:
         return self.db.query(Job).filter(Job.id == job_id).first()
 
     def get_jobs(

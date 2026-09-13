@@ -1,6 +1,6 @@
-from typing import Optional
 
-def parse_docx(file_path: str) -> str:
+
+def parse_docx(file_path: str) -> str | None:
     """
     Parse text from a DOCX file.
     """

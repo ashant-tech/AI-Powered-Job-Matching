@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Backend API
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/uploads:/app/uploads
+    environment:
+      - DATABASE_URL=sqlite:///./job_matching.db
+      - SECRET_KEY=your-secret-key-change-in-production
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    depends_on:
+      - db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+
+  # Database (PostgreSQL for production)
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=jobmatching
+      - POSTGRES_PASSWORD=jobmatching
+      - POSTGRES_DB=jobmatching
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Job Collector
+  job-collector:
+    build: ./job-collector
+    volumes:
+      - ./job-collector:/app
+    environment:
+      - DATABASE_URL=postgresql://jobmatching:jobmatching@db:5432/jobmatching
+    depends_on:
+      - db
+    command: python main.py
+
+volumes:
+  postgres_data:
