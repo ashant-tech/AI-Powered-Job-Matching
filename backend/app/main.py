@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config.database import engine, Base
-from app.routes import auth, users, cv, jobs, matching, notifications
+from app.routes import auth, users, cv, jobs, matching, notifications, collaborations
 from app.middleware.error_handler import (
     http_exception_handler,
     validation_exception_handler,
@@ -41,6 +41,7 @@ app.include_router(cv.router, prefix="/api/cv", tags=["cv"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(matching.router, prefix="/api/matching", tags=["matching"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(collaborations.router, prefix="/api/collaborations", tags=["collaborations"])
 
 @app.get("/")
 async def root():

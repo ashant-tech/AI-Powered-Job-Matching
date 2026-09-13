@@ -42,6 +42,9 @@ export default function Navbar() {
                 <Link href="/notifications" className="text-gray-700 hover:text-indigo-600 transition">
                   Notifications
                 </Link>
+                <Link href="/collaborations" className="text-gray-700 hover:text-indigo-600 transition">
+                  Collaborate
+                </Link>
                 <Link href="/profile" className="text-gray-700 hover:text-indigo-600 transition">
                   Profile
                 </Link>

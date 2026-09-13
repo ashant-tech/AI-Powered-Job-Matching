@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     
     # SMS
     SMS_API_KEY: Optional[str] = None
+    FRONTEND_URL: str = "http://localhost:3000"
     
     class Config:
         env_file = ".env"

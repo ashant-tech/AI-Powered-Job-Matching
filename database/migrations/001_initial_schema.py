@@ -14,6 +14,7 @@ from app.models.job import Job
 from app.models.skill import Skill
 from app.models.match import Match
 from app.models.notification import Notification
+from app.models.collaboration import Collaboration, CollaborationMember, CollaborationInvitation
 
 def upgrade():
     """Create initial database schema"""
