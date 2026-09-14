@@ -1,5 +1,5 @@
 """
-Source 2 - HaHuJobs (Ethiopian Job Board)
+Source 4 - Afriwork (Pan-African Job Platform with Ethiopian jobs)
 """
 import requests
 from typing import List, Dict
@@ -7,42 +7,42 @@ import time
 import re
 from bs4 import BeautifulSoup
 
-class Source2:
+class Source4:
     def __init__(self):
-        self.name = "HaHuJobs"
-        self.base_url = "https://hahujobs.com"
+        self.name = "Afriwork"
+        self.base_url = "https://www.afriwork.com"
     
     def fetch_jobs(self) -> List[Dict]:
-        """Fetch jobs from HaHuJobs"""
+        """Fetch jobs from Afriwork (filtered for Ethiopia)"""
         jobs = []
         
         try:
-            # HaHuJobs job listings page
-            jobs_url = f"{self.base_url}/jobs"
+            # Afriwork job search for Ethiopia
+            search_url = f"{self.base_url}/jobs/ethiopia"
             
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             }
             
-            response = requests.get(jobs_url, headers=headers, timeout=30)
+            response = requests.get(search_url, headers=headers, timeout=30)
             
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 
-                # Find job listings - adjust based on actual HTML structure
-                job_listings = soup.find_all('div', class_='job-item') or soup.find_all('div', class_='job-card') or soup.find_all('div', class_='listing')
+                # Find job listings
+                job_listings = soup.find_all('div', class_='job-item') or soup.find_all('div', class_='job-card')
                 
                 for listing in job_listings:
-                    job = self._parse_hahujobs_job(listing)
+                    job = self._parse_afriwork_job(listing)
                     if job:
                         jobs.append(job)
                         
             else:
-                print(f"HaHuJobs returned status code: {response.status_code}")
+                print(f"Afriwork returned status code: {response.status_code}")
                 return self._get_sample_jobs()
                 
         except Exception as e:
-            print(f"Error fetching from HaHuJobs: {e}")
+            print(f"Error fetching from Afriwork: {e}")
             return self._get_sample_jobs()
         
         # Add rate limiting
@@ -50,8 +50,8 @@ class Source2:
         
         return jobs
     
-    def _parse_hahujobs_job(self, listing) -> Dict:
-        """Parse individual job listing from HaHuJobs"""
+    def _parse_afriwork_job(self, listing) -> Dict:
+        """Parse individual job listing from Afriwork"""
         try:
             # Extract job title
             title_elem = listing.find('h3') or listing.find('h2') or listing.find('a', class_='job-title')
@@ -101,16 +101,11 @@ class Source2:
     def _extract_ethiopian_skills(self, text: str) -> str:
         """Extract skills relevant to Ethiopian job market"""
         ethiopian_skill_keywords = [
-            # Technical skills
             "python", "java", "javascript", "react", "node.js", "sql", "php", "android", "ios",
-            # Business skills
             "accounting", "finance", "marketing", "sales", "management", "hr",
-            # Industry specific
             "banking", "insurance", "telecom", "construction", "manufacturing",
             "agriculture", "tourism", "logistics", "supply chain",
-            # Languages
             "amharic", "oromiffa", "tigrinya", "english", "arabic",
-            # Software/tools
             "excel", "word", "powerpoint", "sap", "erp", "quickbooks"
         ]
         
@@ -158,29 +153,16 @@ class Source2:
         """Return sample Ethiopian jobs when source is unavailable"""
         return [
             {
-                "title": "Business Development Manager",
-                "company": "HaHuJobs",
-                "description": "Experienced business development manager needed for market expansion...",
-                "requirements": "Marketing experience, sales skills, business strategy",
-                "skills": "marketing,sales,business development,strategy",
+                "title": "Project Manager",
+                "company": "Afriwork Ethiopia",
+                "description": "Project manager needed for infrastructure development projects...",
+                "requirements": "PMP certification, 5+ years experience, infrastructure knowledge",
+                "skills": "project management,infrastructure,pmp,construction",
                 "location": "Addis Ababa, Ethiopia",
-                "salary_min": 20000,
-                "salary_max": 35000,
+                "salary_min": 30000,
+                "salary_max": 50000,
                 "job_type": "full-time",
                 "source": self.name,
-                "source_url": "https://hahujobs.com/job/456"
-            },
-            {
-                "title": "Graphic Designer",
-                "company": "Creative Agency Ethiopia",
-                "description": "Creative graphic designer needed for branding and marketing materials...",
-                "requirements": "Adobe Creative Suite, 2+ years experience, portfolio",
-                "skills": "photoshop,illustrator,graphic design,branding",
-                "location": "Addis Ababa, Ethiopia",
-                "salary_min": 12000,
-                "salary_max": 20000,
-                "job_type": "full-time",
-                "source": self.name,
-                "source_url": "https://hahujobs.com/job/457"
+                "source_url": "https://www.afriwork.com/job/ethiopia/321"
             }
         ]

@@ -51,6 +51,9 @@ logs/
 .env.local
 .env.*.local
 
+# Job collector outputs
+job-collector/collected_jobs.json
+
 # Next.js
 .next/
 out/

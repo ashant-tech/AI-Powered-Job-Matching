@@ -47,7 +47,24 @@ The system consists of three main components:
 
 ## 🛠️ Installation
 
-### Backend Setup
+### Quick Setup (Recommended)
+
+Use the provided setup scripts to quickly set up the entire project:
+
+**Linux/Mac:**
+```bash
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+**Windows:**
+```bash
+scripts\setup.bat
+```
+
+### Manual Setup
+
+#### Backend Setup
 
 1. Navigate to the backend directory:
 ```bash
@@ -67,8 +84,8 @@ pip install -r requirements.txt
 
 4. Set up environment variables:
 ```bash
-cp .env.example .env
 # Edit .env with your configuration
+# The .env file is already created with default values
 ```
 
 5. Initialize the database:
@@ -83,7 +100,7 @@ cd ../backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend Setup
+#### Frontend Setup
 
 1. Navigate to the frontend directory:
 ```bash
@@ -102,7 +119,7 @@ npm run dev
 
 The frontend will be available at `http://localhost:3000`
 
-### Job Collector Setup
+#### Job Collector Setup
 
 1. Navigate to the job collector directory:
 ```bash
@@ -221,6 +238,15 @@ pytest
 ```bash
 cd frontend
 npm test
+```
+
+### Run All Tests
+```bash
+# Backend
+cd backend && pytest
+
+# Frontend
+cd frontend && npm test
 ```
 
 ## 📚 Documentation
