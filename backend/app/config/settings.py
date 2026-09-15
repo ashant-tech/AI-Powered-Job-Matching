@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     
     # SMS
     SMS_API_KEY: Optional[str] = None
+    
+    # Telegram
+    TELEGRAM_BOT_TOKEN: Optional[str] = None
+    
     FRONTEND_URL: str = "http://localhost:3000"
     
     class Config:

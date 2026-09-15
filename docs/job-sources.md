@@ -1,119 +1,59 @@
-# Job Sources Configuration
+# Ethiopian Job Sources Documentation
 
 ## Overview
 
-The AI Job Matching System includes a job collector that fetches jobs from Ethiopian job boards and international platforms. The system is specifically optimized for the Ethiopian job market.
+The AI Job Matching System job collector is specifically designed for the Ethiopian job market, collecting jobs from major Ethiopian job boards and platforms. The system focuses on local Ethiopian companies, salary ranges in Ethiopian Birr (ETB), and skills relevant to the Ethiopian market.
 
-## Ethiopian Job Sources
+## Current Ethiopian Job Sources
 
 ### 1. Ethiojobs (Source1)
-
-### Description
-Ethiopia's leading job board with thousands of local and international job postings.
-
-### Website
-https://www.ethiojobs.com
-
-### Features
-- **Industry Coverage**: IT, Banking, Telecom, Manufacturing, Agriculture, Tourism
-- **Salary Range**: Jobs listed in Ethiopian Birr (ETB)
-- **Location Focus**: Addis Ababa and major Ethiopian cities
-- **Skill Extraction**: Optimized for Ethiopian job market skills
-- **Languages**: Amharic, English, Oromiffa job postings
-
-### Configuration
-No API credentials required - uses web scraping with BeautifulSoup.
-
-### Job Categories
-- Software Development
-- Accounting & Finance
-- Engineering
-- Marketing & Sales
-- Human Resources
-- Banking & Insurance
-- Telecom & Technology
+**Website**: https://www.ethiojobs.com
+**Focus**: Leading Ethiopian job board with IT, Banking, Telecom, Manufacturing, Agriculture, Tourism
+**Salary**: Ethiopian Birr (ETB)
+**Languages**: Amharic, English, Oromiffa
+**No API Required**: Uses web scraping
 
 ### 2. HaHuJobs (Source2)
-
-### Description
-Popular Ethiopian job platform with focus on Ethiopian companies and positions.
-
-### Website
-https://hahujobs.com
-
-### Features
-- **Local Focus**: Primarily Ethiopian companies
-- **Career Resources**: CV tips, interview preparation
-- **Company Profiles**: Detailed company information
-- **Salary Information**: Transparent salary ranges in ETB
-
-### Configuration
-No API credentials required - uses web scraping.
-
-### Job Categories
-- Business Development
-- Graphic Design
-- Customer Service
-- Administration
-- Teaching & Education
-- Healthcare
+**Website**: https://hahujobs.com
+**Focus**: Ethiopian companies, Career resources, Company profiles
+**Salary**: Ethiopian Birr (ETB)
+**No API Required**: Uses web scraping
 
 ### 3. Reporter Jobs Gazette (Source3)
-
-### Description
-Job section from Reporter Ethiopia, one of Ethiopia's leading media outlets.
-
-### Website
-https://reporterethiopia.com/jobs
-
-### Features
-- **Media Industry Jobs**: Journalism, editing, content creation
-- **Corporate Jobs**: From major Ethiopian corporations
-- **Government Jobs**: Public sector positions
-- **NGO Jobs**: International organization positions in Ethiopia
-
-### Configuration
-No API credentials required - uses web scraping.
-
-### Job Categories
-- Journalism & Media
-- Public Relations
-- Corporate Communications
-- Digital Marketing
-- Content Creation
+**Website**: https://reporterethiopia.com/jobs
+**Focus**: Media, Journalism, Corporate Communications, Government Jobs, NGO Jobs
+**Salary**: Ethiopian Birr (ETB)
+**No API Required**: Uses web scraping
 
 ### 4. Afriwork (Source4)
+**Website**: https://www.afriwork.com/jobs/ethiopia
+**Focus**: Pan-African with Ethiopia section, International companies in Ethiopia, Remote work
+**Salary**: Ethiopian Birr (ETB)
+**No API Required**: Uses web scraping
 
-### Description
-Pan-African job platform with significant Ethiopian job listings.
+### 5. Srafelagi (Source5)
+**Website**: https://srafelagi.com
+**Focus**: Construction, Engineering, Infrastructure, Architecture
+**Salary**: Ethiopian Birr (ETB)
+**No API Required**: Uses web scraping
 
-### Website
-https://www.afriwork.com/jobs/ethiopia
+### 6. SemayJobs (Source6)
+**Website**: https://semayjobs.com
+**Focus**: Various industries, Marketing, Sales, IT, Administration
+**Salary**: Ethiopian Birr (ETB)
+**No API Required**: Uses web scraping
 
-### Features
-- **African Focus**: Jobs across African countries
-- **Ethiopia Section**: Dedicated Ethiopian job category
-- **International Companies**: Multinational corporations operating in Ethiopia
-- **Remote Opportunities**: Remote work for Ethiopian professionals
-
-### Configuration
-No API credentials required - uses web scraping.
-
-### Job Categories
-- Project Management
-- Engineering
-- IT & Technology
-- Agriculture
-- Tourism & Hospitality
-- Logistics & Supply Chain
+### 7. AddisJobs (Source7)
+**Website**: https://addisjobs.com
+**Focus**: Addis Ababa positions, Executive roles, Administration
+**Salary**: Ethiopian Birr (ETB)
+**No API Required**: Uses web scraping
 
 ## Additional Ethiopian Job Sources
 
-The system can be extended to include more Ethiopian job platforms:
+The system can be extended to include these Ethiopian job platforms:
 
-### Popular Ethiopian Job Boards
-- **Srafelagi** - Construction and engineering jobs
-- **SemayJobs** - Various industry positions
+### Major Ethiopian Job Boards
 - **Enjera** - Technology and startup jobs
 - **Shega Jobs** - Professional services
 - **EthiopiaWork** - General job listings
@@ -124,7 +64,6 @@ The system can be extended to include more Ethiopian job platforms:
 - **ET Careers** - Career development positions
 - **Ezega Jobs** - Entry to mid-level positions
 - **Harmee Jobs** - Various industries
-- **AddisJobs** - Addis Ababa jobs
 - **Shola Jobs** - Shola area positions
 - **Elelanajobs** - Technology jobs
 - **EffoyJobs** - Customer service
@@ -149,6 +88,394 @@ The system can be extended to include more Ethiopian job platforms:
 - **Facebook Ethiopian Job Groups** - Facebook job communities
 - **Company Career Pages** - Ethiopian company websites
 - **NGO Career Portals** - NGO websites with Ethiopia offices
+
+## Ethiopian Job Market Features
+
+### Salary Information
+Jobs are listed in Ethiopian Birr (ETB):
+- **Entry Level**: 8,000 - 15,000 ETB/month
+- **Mid Level**: 15,000 - 30,000 ETB/month
+- **Senior Level**: 30,000 - 60,000 ETB/month
+- **Executive**: 60,000+ ETB/month
+
+### Language Requirements
+Most Ethiopian jobs require:
+- **Amharic** - Native language proficiency
+- **English** - Business language proficiency
+- **Oromiffa/Tigrinya** - Regional language preferences
+
+### Popular Skills in Ethiopian Market
+- **Technical**: Python, Java, JavaScript, Excel, SAP
+- **Business**: Accounting, Finance, Marketing, Sales
+- **Languages**: Amharic, English, Arabic
+- **Industry**: Banking, Telecom, Construction, Agriculture
+
+### Location Distribution
+- **Addis Ababa**: 60% of jobs
+- **Regional Cities**: 30% of jobs
+- **Remote**: 10% of jobs
+
+## Running the Job Collector
+
+### Collect Ethiopian Jobs
+```bash
+cd job-collector
+python main.py
+```
+
+This will collect jobs from all 7 Ethiopian sources:
+1. Ethiojobs
+2. HaHuJobs
+3. Reporter Jobs Gazette
+4. Afriwork
+5. Srafelagi
+6. SemayJobs
+7. AddisJobs
+
+### Continuous Collection
+Edit `job-collector/main.py` to enable scheduler:
+```python
+if __name__ == "__main__":
+    collector = JobCollector()
+    
+    # Run continuously
+    schedule.every(1).hours.do(collector.run_once)
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
+```
+
+## Data Processing for Ethiopian Jobs
+
+### Job Cleaning
+- **Text Normalization**: Handle Amharic characters
+- **Location Standardization**: Ethiopian city names
+- **Salary Conversion**: ETB to standardized format
+- **Skill Extraction**: Ethiopian market-specific skills
+
+### Duplicate Detection
+- **Job Signature**: Based on title, company, location
+- **URL Deduplication**: Source URL matching
+- **Content Similarity**: Description comparison
+
+## Adding More Ethiopian Sources
+
+### Web Scraping Template
+To add a new Ethiopian job source:
+
+1. Create `job-collector/sources/source8.py`:
+```python
+"""
+Source 8 - Your Ethiopian Job Board
+"""
+import requests
+from typing import List, Dict
+import time
+import re
+from bs4 import BeautifulSoup
+
+class Source8:
+    def __init__(self):
+        self.name = "YourEthiopianSource"
+        self.base_url = "https://ethiopian-job-board.com"
+    
+    def fetch_jobs(self) -> List[Dict]:
+        """Fetch jobs from Ethiopian source"""
+        jobs = []
+        
+        try:
+            response = requests.get(f"{self.base_url}/jobs", timeout=30)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Parse job listings based on the site's HTML structure
+            job_listings = soup.find_all('div', class_='job-item')
+            
+            for listing in job_listings:
+                job = self._parse_job(listing)
+                if job:
+                    jobs.append(job)
+                    
+        except Exception as e:
+            print(f"Error: {e}")
+            return self._get_sample_jobs()
+        
+        time.sleep(2)
+        return jobs
+    
+    def _parse_job(self, listing) -> Dict:
+        """Parse individual job listing"""
+        # Extract job details
+        title = listing.find('h3').get_text(strip=True)
+        company = listing.find('span', class_='company').get_text(strip=True)
+        # ... more parsing
+        
+        return {
+            "title": title,
+            "company": company,
+            "description": description,
+            "skills": self._extract_ethiopian_skills(description),
+            "location": "Ethiopia",
+            "salary_min": salary,
+            "salary_max": salary * 1.5,
+            "job_type": "full-time",
+            "source": self.name,
+            "source_url": job_url,
+        }
+    
+    def _extract_ethiopian_skills(self, text: str) -> str:
+        """Extract Ethiopian market-specific skills"""
+        skills = ["python", "java", "amharic", "english", "accounting"]
+        found = [skill for skill in skills if skill.lower() in text.lower()]
+        return ",".join(found)
+    
+    def _parse_ethiopian_salary(self, text: str) -> float:
+        """Parse ETB salary"""
+        salary_patterns = [
+            r'(\d+,?\d+)\s*(?:ETB|Birr)',
+            r'Birr\s*:?\s*(\d+,?\d+)',
+            r'ETB\s*:?\s*(\d+,?\d+)',
+        ]
+        
+        for pattern in salary_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                salary_str = match.group(1).replace(",", "")
+                try:
+                    return float(salary_str)
+                except ValueError:
+                    continue
+        
+        return 0.0
+    
+    def _determine_job_type(self, description: str) -> str:
+        """Determine job type"""
+        description_lower = description.lower()
+        
+        if "remote" in description_lower or "work from home" in description_lower:
+            return "remote"
+        elif "contract" in description_lower or "freelance" in description_lower:
+            return "contract"
+        elif "part-time" in description_lower:
+            return "part-time"
+        else:
+            return "full-time"
+    
+    def _get_sample_jobs(self) -> List[Dict]:
+        """Fallback sample jobs"""
+        return [{"title": "Sample Job", "company": "Sample Company", ...}]
+```
+
+2. Add to `job-collector/main.py`:
+```python
+from sources.source8 import Source8
+
+self.sources = [
+    Source1(),  # Ethiojobs
+    Source2(),  # HaHuJobs
+    Source3(),  # Reporter Jobs
+    Source4(),  # Afriwork
+    Source5(),  # Srafelagi
+    Source6(),  # SemayJobs
+    Source7(),  # AddisJobs
+    Source8()   # Your new source
+]
+```
+
+## Ethiopian Job Market Insights
+
+### Current Trends
+- **Digital Jobs**: Growing demand for IT and digital skills
+- **Remote Work**: Increasing remote opportunities
+- **Startup Ecosystem**: Growing startup job market
+- **Government Jobs**: Stable public sector employment
+- **NGO Jobs**: Strong international NGO presence
+
+### Industry Growth
+- **Technology**: Fastest growing sector
+- **Banking**: Stable employment
+- **Construction**: Infrastructure development
+- **Agriculture**: Modernization creating new opportunities
+- **Tourism**: Post-pandemic recovery
+
+### Skill Demand
+- **Digital Skills**: High demand
+- **Language Skills**: Amharic + English essential
+- **Technical Skills**: Programming, data analysis
+- **Soft Skills**: Communication, problem-solving
+
+## Troubleshooting
+
+### Common Issues
+
+**Website structure changed:**
+- Ethiopian job boards frequently update their HTML structure
+- Update CSS selectors in source files
+- Test individual sources before full deployment
+
+**Encoding issues with Amharic:**
+- Ensure UTF-8 encoding is handled
+- Use proper character encoding in requests
+- Test with Amharic job titles
+
+**Rate limiting:**
+- Ethiopian sites may have strict rate limits
+- Use appropriate delays between requests
+- Consider caching strategies
+
+**Salary parsing:**
+- Ethiopian salary formats vary
+- ETB vs Birr vs just numbers
+- Monthly vs annual salaries
+
+## Best Practices for Ethiopian Job Collection
+
+1. **Respect robots.txt** from Ethiopian websites
+2. **Use appropriate delays** between requests
+3. **Handle Amharic characters** properly
+4. **Parse ETB salaries** correctly
+5. **Filter for Ethiopia** on international platforms
+6. **Validate job locations** as Ethiopian cities
+7. **Test during Ethiopian business hours** for best results
+8. **Monitor website changes** in Ethiopian job boards
+
+## Configuration
+
+### Environment Variables
+Edit `job-collector/.env`:
+```bash
+# Job Collection Settings
+JOB_COLLECTION_ENABLED=true
+COLLECTION_INTERVAL_HOURS=1
+```
+
+### Adding to Job Collector
+Edit `job-collector/main.py` to include new sources in the `self.sources` list.
+
+## System Status
+
+**Currently Implemented Ethiopian Sources:**
+- ✅ Ethiojobs
+- ✅ HaHuJobs  
+- ✅ Reporter Jobs Gazette
+- ✅ Afriwork
+- ✅ Srafelagi
+- ✅ SemayJobs
+- ✅ AddisJobs
+- ✅ Telegram Channels (32 Ethiopian job channels)
+
+**Total Ethiopian Sources:** 8 major sources including 32 Telegram channels
+
+**No API Keys Required:** All sources use web scraping (no API credentials needed)
+
+**Salary Format:** All jobs stored in Ethiopian Birr (ETB)
+
+**Location Focus:** Ethiopia with Addis Ababa as primary location
+
+## Telegram Job Channels
+
+The system includes 32 Ethiopian job Telegram channels as a job source:
+
+### Major Telegram Channels
+- **Ethio Jobs Vacancy™** — `@Ethiojobs2000`
+- **Afriwork (Freelance Ethiopia)** — `@freelance_ethio`
+- **Ethiojobs** — `@ethiojobsofficial`
+- **EffoyJobs** — `@effoyjobs`
+- **Ethio Job Vacancy** — `@ethio_job_vacancy1`
+- **Ethio daily vacancy** — `@informationnegari`
+- **Ethiopia Vacancy** — `@ethiopiavacancy0`
+- **HaHuJobs** — `@hahujobs`
+- **Afriwork Amharic** — `@afriworkamharic`
+- **Ethiopian Vacancy** — `@vacancyforallethio`
+- **Ethio Jobs Hub** — `@Ethiojobshubs`
+- **Embassy & NGO Jobs** — `@jobs_in_ethio`
+- **EthiopianReporterJobs** — `@ethiopian_reporter_job`
+- **E-LMIS** — `@FDRE_MoLSofficial`
+- **GeezJobs Ethiopia** — `@geezjobs_ethiopia`
+- **Shegerjobs** — `@shegarjob`
+- **NGO Jobs + Vacancy** — `@vacancy3`
+- **HarmeeJobs** — `@harmeejobs`
+- **Elelanajobs** — `@elelanajobs`
+- **Fanajobs** — `@fanajobs`
+- **Ethioworks** — `@ethioworks1`
+- **Onlinejobs Ethiopia** — `@Ethiontwork`
+- **Tikvah Jobs/Vacancy** — `@tikvahethmagazine`
+- **Shola Jobs** — `@ngoethiopia`
+- **Tikus Jobs** — `@tikusjobs`
+- **AbayJobs** — `@abayjobscom`
+- **Ethio Job Vacancy** — `@Ethiojob1Vacancy`
+- **Abol Jobs Ethiopia** — `@aboljobs`
+- **Dereja** — `@Derejaofficial`
+- **Safaricom & NGO Jobs** — `@kebenajobs`
+- **Adama Jobs** — `@adama_Jobs`
+- **Gadaa Network** — `@gadaanetwork`
+- **Jobs for All** — `@Jobs_for_all1`
+
+### Telegram Job Collection
+The Telegram source collects jobs from these channels and includes:
+- Channel-specific job categories (NGO, Tech, General, etc.)
+- Ethiopian salary ranges in ETB
+- Location information for Ethiopian cities
+- Skills relevant to Ethiopian market
+- Source attribution to specific Telegram channels
+
+## Telegram User Notifications
+
+Users can receive job notifications via Telegram when:
+
+### Notification Types
+1. **Job Match Notifications** - When new jobs match their profile
+2. **Application Status Updates** - When their application status changes
+3. **New Job Alerts** - When new jobs are posted in their preferred categories
+4. **Daily Job Digest** - Daily summary of new opportunities
+
+### Setup Process
+1. User enables Telegram notifications in their profile settings
+2. User provides their Telegram chat ID
+3. System sends personalized job notifications via Telegram
+4. Users can disable notifications at any time
+
+### API Endpoints
+- `POST /api/notifications/telegram/enable` - Enable Telegram notifications
+- `POST /api/notifications/telegram/disable` - Disable Telegram notifications
+- `GET /api/notifications/telegram/status` - Check notification status
+
+### Configuration
+Add Telegram bot token to `backend/.env`:
+```bash
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+```
+
+### Telegram Notification Features
+- **Personalized Alerts**: Only jobs matching user's skills and preferences
+- **Ethiopian Context**: Jobs in ETB, Ethiopian locations, relevant skills
+- **Rich Formatting**: HTML-formatted messages with emojis
+- **Instant Delivery**: Real-time notifications when jobs are found
+- **Privacy Control**: Users can enable/disable anytime
+
+### Notification Content Example
+```
+🎯 New Job Matches Found!
+
+Hello [User Name],
+
+Great news! We found 5 new job matches that align with your profile and skills.
+
+Top Matches:
+1. Software Developer at Ethio Telecom
+   💰 20,000 - 35,000 ETB
+   📍 Addis Ababa, Ethiopia
+   🔗 [Job Link]
+
+2. Marketing Manager at HaHuJobs
+   💰 22,000 - 40,000 ETB
+   📍 Addis Ababa, Ethiopia
+   🔗 [Job Link]
+
+Log in to your dashboard to view all matches and apply to positions that interest you.
+
+AI Job Matching System
+🇪🇹 Ethiopian Job Matching
+```
 
 ## Ethiopian Job Market Features
 

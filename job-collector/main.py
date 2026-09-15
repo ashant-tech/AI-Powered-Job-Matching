@@ -9,6 +9,10 @@ from sources.source1 import Source1
 from sources.source2 import Source2
 from sources.source3 import Source3
 from sources.source4 import Source4
+from sources.source5 import Source5
+from sources.source6 import Source6
+from sources.source7 import Source7
+from sources.telegram_source import TelegramJobSource
 from processors.cleaner import JobCleaner
 from processors.duplicate_detector import DuplicateDetector
 
@@ -21,7 +25,11 @@ class JobCollector:
             Source1(),  # Ethiojobs
             Source2(),  # HaHuJobs
             Source3(),  # Reporter Jobs Gazette
-            Source4()   # Afriwork
+            Source4(),  # Afriwork
+            Source5(),  # Srafelagi
+            Source6(),  # SemayJobs
+            Source7(),  # AddisJobs
+            TelegramJobSource()  # Telegram Channels
         ]
         self.cleaner = JobCleaner()
         self.duplicate_detector = DuplicateDetector()
