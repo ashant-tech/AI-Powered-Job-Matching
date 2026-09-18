@@ -17,7 +17,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="AI Job Matching System",
     description="AI-powered job matching platform with CV analysis",
-    version="1.0.0"
+    version="0.2.0"
 )
 
 # CORS middleware

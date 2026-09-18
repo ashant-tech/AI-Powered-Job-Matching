@@ -7,6 +7,7 @@ from app.models.cv import CV
 from app.schemas.match import MatchResponse
 from app.ai.semantic_matcher import SemanticMatcher
 from app.ai.ranking import rank_matches
+from app.services.notification_service import NotificationService
 
 class MatchingService:
     def __init__(self, db: Session):
@@ -23,10 +24,20 @@ class MatchingService:
         
         # Calculate match scores for each job
         matches = []
+        new_matches = []
         for job in jobs:
             match_score = self.semantic_matcher.calculate_match_score(cv, job)
             
-            # Create match record
+            existing_match = self.db.query(Match).filter(
+                Match.user_id == user_id,
+                Match.cv_id == cv_id,
+                Match.job_id == job.id
+            ).first()
+
+            if existing_match:
+                matches.append(existing_match)
+                continue
+
             match = Match(
                 user_id=user_id,
                 cv_id=cv_id,
@@ -37,8 +48,16 @@ class MatchingService:
             
             self.db.add(match)
             matches.append(match)
+            new_matches.append(match)
         
         self.db.commit()
+
+        if new_matches:
+            NotificationService(self.db).send_match_notification(
+                user_id=user_id,
+                match_count=len(new_matches),
+                top_jobs=[match.job for match in new_matches[:5]]
+            )
         
         # Rank matches
         ranked_matches = rank_matches(matches)

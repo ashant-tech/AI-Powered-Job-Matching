@@ -73,6 +73,8 @@ class JobCollector:
             
             from app.config.database import SessionLocal
             from app.models.job import Job
+            from app.models.cv import CV
+            from app.services.matching_service import MatchingService
             
             db = SessionLocal()
             
@@ -103,6 +105,15 @@ class JobCollector:
                     saved_count += 1
             
             db.commit()
+
+            if saved_count:
+                matching_service = MatchingService(db)
+                for cv in db.query(CV).all():
+                    try:
+                        matching_service.find_matches_for_cv(cv.user_id, cv.id)
+                    except Exception as e:
+                        print(f"Error matching jobs for CV {cv.id}: {e}")
+
             db.close()
             
             print(f"Saved {saved_count} new jobs to database")
