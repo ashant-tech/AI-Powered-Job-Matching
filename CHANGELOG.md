@@ -5,6 +5,7 @@
 ### Added
 
 - Automatic matching when new jobs are collected
+- Automatic matching immediately after CV upload and analysis
 - In-app notifications when matching jobs become available
 - Optional Telegram notifications for new job matches
 - Duplicate match prevention during repeated matching runs

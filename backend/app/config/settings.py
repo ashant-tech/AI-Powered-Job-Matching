@@ -30,10 +30,15 @@ class Settings(BaseSettings):
     # Telegram
     TELEGRAM_BOT_TOKEN: Optional[str] = None
     
+    # Job Collection
+    JOB_COLLECTION_ENABLED: bool = True
+    COLLECTION_INTERVAL_HOURS: int = 1
+    
     FRONTEND_URL: str = "http://localhost:3000"
     
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "allow"
 
 settings = Settings()

@@ -12,6 +12,8 @@ from sources.source4 import Source4
 from sources.source5 import Source5
 from sources.source6 import Source6
 from sources.source7 import Source7
+from sources.source8 import Source8
+from sources.source9 import Source9
 from sources.telegram_source import TelegramJobSource
 from processors.cleaner import JobCleaner
 from processors.duplicate_detector import DuplicateDetector
@@ -29,7 +31,9 @@ class JobCollector:
             Source5(),  # Srafelagi
             Source6(),  # SemayJobs
             Source7(),  # AddisJobs
-            TelegramJobSource()  # Telegram Channels
+            Source8(),  # Enjera (Tech/Startup jobs)
+            Source9(),  # Shega Jobs (Professional services)
+            TelegramJobSource()  # Telegram Channels (50+ Ethiopian channels)
         ]
         self.cleaner = JobCleaner()
         self.duplicate_detector = DuplicateDetector()
@@ -71,10 +75,13 @@ class JobCollector:
             if backend_path not in sys.path:
                 sys.path.insert(0, backend_path)
             
-            from app.config.database import SessionLocal
+            from app.config.database import SessionLocal, Base, engine
             from app.models.job import Job
             from app.models.cv import CV
             from app.services.matching_service import MatchingService
+            
+            # Create tables if they don't exist
+            Base.metadata.create_all(bind=engine)
             
             db = SessionLocal()
             
@@ -107,12 +114,19 @@ class JobCollector:
             db.commit()
 
             if saved_count:
+                print(f"New jobs saved: {saved_count}. Triggering matching and notifications...")
                 matching_service = MatchingService(db)
+                cv_count = 0
                 for cv in db.query(CV).all():
                     try:
+                        print(f"Finding matches for CV {cv.id} (User: {cv.user_id})...")
                         matching_service.find_matches_for_cv(cv.user_id, cv.id)
+                        cv_count += 1
+                        print(f"Successfully processed CV {cv.id}")
                     except Exception as e:
                         print(f"Error matching jobs for CV {cv.id}: {e}")
+                print(f"Processed {cv_count} CVs for new job matches")
+                print("Notifications will be sent automatically for high-quality matches")
 
             db.close()
             

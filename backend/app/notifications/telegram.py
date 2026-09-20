@@ -13,7 +13,67 @@ class TelegramNotificationService:
     def __init__(self):
         self.api_token = settings.TELEGRAM_BOT_TOKEN
         self.telegram_api_url = f"https://api.telegram.org/bot{self.api_token}" if self.api_token else None
+        self.username_cache = {}  # Cache for username to chat_id mappings
     
+    def get_chat_id_from_username(self, username: str) -> Optional[str]:
+        """
+        Get Telegram chat_id from username.
+        
+        Args:
+            username: Telegram username (without @)
+        
+        Returns:
+            str: Chat ID if found, None otherwise
+        """
+        if not self.api_token:
+            logger.warning("Telegram API token not configured")
+            return None
+        
+        # Check cache first
+        if username in self.username_cache:
+            return self.username_cache[username]
+        
+        try:
+            # Try to get chat ID from username using getChat
+            url = f"{self.telegram_api_url}/getChat"
+            response = requests.get(url, params={"chat_id": f"@{username}"}, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("ok"):
+                    chat_info = data.get("result", {})
+                    chat_id = chat_info.get("id")
+                    if chat_id:
+                        # Cache the result
+                        self.username_cache[username] = str(chat_id)
+                        logger.info(f"Found chat_id {chat_id} for username @{username}")
+                        return str(chat_id)
+            
+            logger.warning(f"Could not find chat_id for username @{username}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting chat_id from username: {e}")
+            return None
+
+    def send_telegram_message_by_username(self, username: str, message: str) -> bool:
+        """
+        Send a message to a Telegram user by username.
+        
+        Args:
+            username: Telegram username (without @)
+            message: Message to send
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        chat_id = self.get_chat_id_from_username(username)
+        if not chat_id:
+            logger.warning(f"Could not resolve chat_id for username @{username}")
+            return False
+        
+        return self.send_telegram_message(chat_id, message)
+
     def send_telegram_message(self, chat_id: str, message: str) -> bool:
         """
         Send a message to a Telegram user.

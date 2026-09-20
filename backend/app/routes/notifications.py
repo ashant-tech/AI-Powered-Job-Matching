@@ -8,7 +8,7 @@ from app.middleware.auth import get_current_user
 router = APIRouter()
 
 class TelegramNotificationRequest(BaseModel):
-    chat_id: str
+    chat_id: str = None
     telegram_username: str = None
 
 @router.get("/")
@@ -54,21 +54,24 @@ async def enable_telegram_notifications(
     """Enable Telegram notifications for the current user"""
     notification_service = NotificationService(db)
     
+    # At least one of chat_id or username must be provided
+    if not request.chat_id and not request.telegram_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Either chat_id or telegram_username must be provided"
+        )
+    
     success = notification_service.enable_telegram_notifications(
         current_user.id,
-        request.chat_id
+        request.chat_id,
+        request.telegram_username
     )
     
     if success:
-        # Update user's telegram username if provided
-        if request.telegram_username:
-            current_user.telegram_username = request.telegram_username
-            db.commit()
-        
         return {
             "message": "Telegram notifications enabled successfully",
-            "telegram_chat_id": request.chat_id,
-            "telegram_username": request.telegram_username
+            "telegram_chat_id": current_user.telegram_chat_id,
+            "telegram_username": current_user.telegram_username
         }
     else:
         raise HTTPException(

@@ -13,6 +13,7 @@ class MatchingService:
     def __init__(self, db: Session):
         self.db = db
         self.semantic_matcher = SemanticMatcher()
+        self.notification_threshold = 0.5  # Only notify for matches above 50%
 
     def find_matches_for_cv(self, user_id: int, cv_id: int) -> List[MatchResponse]:
         cv = self.db.query(CV).filter(CV.id == cv_id).first()
@@ -25,6 +26,7 @@ class MatchingService:
         # Calculate match scores for each job
         matches = []
         new_matches = []
+        high_quality_matches = []
         for job in jobs:
             match_score = self.semantic_matcher.calculate_match_score(cv, job)
             
@@ -49,14 +51,19 @@ class MatchingService:
             self.db.add(match)
             matches.append(match)
             new_matches.append(match)
+            
+            # Track high-quality matches for notification
+            if match_score >= self.notification_threshold:
+                high_quality_matches.append(match)
         
         self.db.commit()
 
-        if new_matches:
+        # Only send notification for high-quality matches
+        if high_quality_matches:
             NotificationService(self.db).send_match_notification(
                 user_id=user_id,
-                match_count=len(new_matches),
-                top_jobs=[match.job for match in new_matches[:5]]
+                match_count=len(high_quality_matches),
+                top_jobs=[match.job for match in high_quality_matches[:5]]
             )
         
         # Rank matches

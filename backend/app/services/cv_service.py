@@ -11,6 +11,7 @@ from app.cv_processing.docx_parser import parse_docx
 from app.cv_processing.text_cleaner import clean_text
 from app.ai.cv_analyzer import analyze_cv_text
 from app.ai.skill_extractor import extract_skills
+from app.services.matching_service import MatchingService
 
 class CVService:
     def __init__(self, db: Session):
@@ -51,6 +52,12 @@ class CVService:
         
         # Analyze CV asynchronously (simplified for now)
         self._analyze_cv_async(db_cv.id)
+
+        # Find available jobs immediately after CV analysis so new matches notify the user.
+        try:
+            MatchingService(self.db).find_matches_for_cv(user_id, db_cv.id)
+        except Exception as e:
+            print(f"Error finding matches for CV {db_cv.id}: {e}")
         
         return db_cv
 

@@ -38,23 +38,48 @@ class NotificationService:
         """Send Telegram notification if user has enabled it"""
         try:
             user = self.db.query(User).filter(User.id == user_id).first()
-            if user and user.telegram_chat_id and user.telegram_notifications_enabled:
-                if notification_type == "match":
-                    # For match notifications, we need job details - will be handled by calling method
-                    self.telegram_service.send_telegram_message(
-                        user.telegram_chat_id,
-                        f"🎯 {title}\n\n{message}"
-                    )
-                elif notification_type == "application":
-                    self.telegram_service.send_telegram_message(
-                        user.telegram_chat_id,
-                        f"📋 {title}\n\n{message}"
-                    )
-                else:
-                    self.telegram_service.send_telegram_message(
-                        user.telegram_chat_id,
-                        f"🔔 {title}\n\n{message}"
-                    )
+            if user and user.telegram_notifications_enabled:
+                # Try to send using chat_id first, then fallback to username
+                sent = False
+                
+                if user.telegram_chat_id:
+                    if notification_type == "match":
+                        self.telegram_service.send_telegram_message(
+                            user.telegram_chat_id,
+                            f"🎯 {title}\n\n{message}"
+                        )
+                        sent = True
+                    elif notification_type == "application":
+                        self.telegram_service.send_telegram_message(
+                            user.telegram_chat_id,
+                            f"📋 {title}\n\n{message}"
+                        )
+                        sent = True
+                    else:
+                        self.telegram_service.send_telegram_message(
+                            user.telegram_chat_id,
+                            f"🔔 {title}\n\n{message}"
+                        )
+                        sent = True
+                
+                # Fallback to username if chat_id not available or sending failed
+                if not sent and user.telegram_username:
+                    if notification_type == "match":
+                        self.telegram_service.send_telegram_message_by_username(
+                            user.telegram_username,
+                            f"🎯 {title}\n\n{message}"
+                        )
+                    elif notification_type == "application":
+                        self.telegram_service.send_telegram_message_by_username(
+                            user.telegram_username,
+                            f"📋 {title}\n\n{message}"
+                        )
+                    else:
+                        self.telegram_service.send_telegram_message_by_username(
+                            user.telegram_username,
+                            f"🔔 {title}\n\n{message}"
+                        )
+                        
         except Exception as e:
             print(f"Error sending Telegram notification: {e}")
 
@@ -91,18 +116,47 @@ class NotificationService:
         user_name = user.full_name if user else "User"
         
         title = "New Job Matches Found"
-        message = f"We found {match_count} new job matches for your profile. Check your recommendations!"
+        
+        # Build detailed message with job information
+        if top_jobs:
+            job_details = []
+            for i, job in enumerate(top_jobs[:3], 1):
+                job_details.append(f"{i}. {job.title} at {job.company}")
+            
+            if len(top_jobs) > 3:
+                job_details.append(f"... and {len(top_jobs) - 3} more")
+            
+            message = f"We found {match_count} new job matches for your profile:\n\n" + "\n".join(job_details) + "\n\nCheck your recommendations for details!"
+        else:
+            message = f"We found {match_count} new job matches for your profile. Check your recommendations!"
         
         notification = self.create_notification(user_id, "match", title, message, send_telegram=False)
         
         # Send Telegram notification with job details
-        if user and user.telegram_chat_id and user.telegram_notifications_enabled and top_jobs:
-            self.telegram_service.send_job_match_notification(
-                user.telegram_chat_id,
-                user_name,
-                match_count,
-                top_jobs
-            )
+        if user and user.telegram_notifications_enabled and top_jobs:
+            sent = False
+            chat_id = None
+            
+            # Try using chat_id first
+            if user.telegram_chat_id:
+                chat_id = user.telegram_chat_id
+                sent = self.telegram_service.send_job_match_notification(
+                    chat_id,
+                    user_name,
+                    match_count,
+                    top_jobs
+                )
+            
+            # Fallback to username if chat_id not available or sending failed
+            if not sent and user.telegram_username:
+                chat_id = self.telegram_service.get_chat_id_from_username(user.telegram_username)
+                if chat_id:
+                    sent = self.telegram_service.send_job_match_notification(
+                        chat_id,
+                        user_name,
+                        match_count,
+                        top_jobs
+                    )
         
         return notification
 
@@ -116,14 +170,21 @@ class NotificationService:
         notification = self.create_notification(user_id, "application", title, message, send_telegram=False)
         
         # Send Telegram notification
-        if user and user.telegram_chat_id and user.telegram_notifications_enabled:
-            self.telegram_service.send_application_status_notification(
-                user.telegram_chat_id,
-                user_name,
-                job_title,
-                company,
-                status
-            )
+        if user and user.telegram_notifications_enabled:
+            chat_id = user.telegram_chat_id
+            
+            # Fallback to username if chat_id not available
+            if not chat_id and user.telegram_username:
+                chat_id = self.telegram_service.get_chat_id_from_username(user.telegram_username)
+            
+            if chat_id:
+                self.telegram_service.send_application_status_notification(
+                    chat_id,
+                    user_name,
+                    job_title,
+                    company,
+                    status
+                )
         
         return notification
 
@@ -137,13 +198,20 @@ class NotificationService:
         notification = self.create_notification(user_id, "job_alert", title, message, send_telegram=False)
         
         # Send Telegram notification
-        if user and user.telegram_chat_id and user.telegram_notifications_enabled:
-            self.telegram_service.send_new_job_alert(
-                user.telegram_chat_id,
-                user_name,
-                job_count,
-                job_types or ["various fields"]
-            )
+        if user and user.telegram_notifications_enabled:
+            chat_id = user.telegram_chat_id
+            
+            # Fallback to username if chat_id not available
+            if not chat_id and user.telegram_username:
+                chat_id = self.telegram_service.get_chat_id_from_username(user.telegram_username)
+            
+            if chat_id:
+                self.telegram_service.send_new_job_alert(
+                    chat_id,
+                    user_name,
+                    job_count,
+                    job_types or ["various fields"]
+                )
         
         return notification
 
@@ -157,28 +225,44 @@ class NotificationService:
         notification = self.create_notification(user_id, "digest", title, message, send_telegram=False)
         
         # Send Telegram notification
-        if user and user.telegram_chat_id and user.telegram_notifications_enabled:
-            self.telegram_service.send_daily_job_digest(
-                user.telegram_chat_id,
-                user_name,
-                job_count,
-                featured_jobs or []
-            )
+        if user and user.telegram_notifications_enabled:
+            chat_id = user.telegram_chat_id
+            
+            # Fallback to username if chat_id not available
+            if not chat_id and user.telegram_username:
+                chat_id = self.telegram_service.get_chat_id_from_username(user.telegram_username)
+            
+            if chat_id:
+                self.telegram_service.send_daily_job_digest(
+                    chat_id,
+                    user_name,
+                    job_count,
+                    featured_jobs or []
+                )
         
         return notification
 
-    def enable_telegram_notifications(self, user_id: int, chat_id: str) -> bool:
+    def enable_telegram_notifications(self, user_id: int, chat_id: str = None, username: str = None) -> bool:
         """Enable Telegram notifications for a user"""
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user:
             return False
         
-        user.telegram_chat_id = chat_id
+        if chat_id:
+            user.telegram_chat_id = chat_id
+        if username:
+            user.telegram_username = username
+            
         user.telegram_notifications_enabled = True
         self.db.commit()
         
         # Send welcome message
-        self.telegram_service.enable_telegram_notifications(chat_id, user.full_name or "User")
+        target_chat_id = chat_id
+        if not target_chat_id and username:
+            target_chat_id = self.telegram_service.get_chat_id_from_username(username)
+        
+        if target_chat_id:
+            self.telegram_service.enable_telegram_notifications(target_chat_id, user.full_name or "User")
         
         return True
 

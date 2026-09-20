@@ -26,7 +26,8 @@ class AuthService:
             hashed_password=hashed_password,
             full_name=user.full_name,
             phone=user.phone,
-            is_seeker=user.is_seeker
+            is_seeker=user.is_seeker,
+            telegram_username=user.telegram_username
         )
         self.db.add(db_user)
         self.db.commit()
