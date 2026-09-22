@@ -23,7 +23,7 @@ export default function RecommendationsPage() {
   const fetchCVs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -31,7 +31,7 @@ export default function RecommendationsPage() {
 
       if (response.ok) {
         const userData = await response.json();
-        const cvsResponse = await fetch(`http://localhost:8000/api/cv/user/${userData.id}`, {
+        const cvsResponse = await fetch(`/api/cv/user/${userData.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -57,7 +57,7 @@ export default function RecommendationsPage() {
   const fetchMatches = async (cvId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/matching/cv/${cvId}`, {
+      const response = await fetch(`/api/matching/cv/${cvId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -154,19 +154,24 @@ export default function RecommendationsPage() {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-gray-900">Job #{match.job_id}</h3>
+                      <h3 className="text-xl font-bold text-gray-900">{match.job?.title || 'Job no longer available'}</h3>
                       <div className={`text-white px-3 py-1 rounded-full text-sm font-bold ${getMatchScoreColor(match.match_score)}`}>
                         {match.match_score}% Match
                       </div>
                     </div>
                     <div className="flex gap-4 text-sm text-gray-600 mb-3">
+                      {match.job && <span>{match.job.company}</span>}
                       <span className="flex items-center gap-1">
                         Status: {match.status}
                       </span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 ml-4">
-                    <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                    <button
+                      onClick={() => match.job?.apply_url && window.open(match.job.apply_url, '_blank', 'noopener,noreferrer')}
+                      disabled={!match.job?.apply_url}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+                    >
                       Apply
                     </button>
                     <button className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition">

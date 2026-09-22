@@ -1,6 +1,6 @@
 import json
 from app.models.cv import CV
-from app.models.job import Job
+from app.models.job import ExternalJob
 
 class SemanticMatcher:
     def __init__(self):
@@ -8,7 +8,7 @@ class SemanticMatcher:
         # For now, we'll use rule-based matching
         pass
 
-    def calculate_match_score(self, cv: CV, job: Job) -> float:
+    def calculate_match_score(self, cv: CV, job: ExternalJob) -> float:
         """
         Calculate a match score between a CV and a job (0-100).
         This is a simplified version - in production, use semantic embeddings.
@@ -77,7 +77,7 @@ class SemanticMatcher:
         match_percentage = matches / len(job_skills) if job_skills else 0
         return match_percentage
 
-    def _calculate_experience_match(self, cv: CV, job: Job) -> float:
+    def _calculate_experience_match(self, cv: CV, job: ExternalJob) -> float:
         """
         Calculate experience match based on CV text and job requirements.
         """
@@ -99,7 +99,7 @@ class SemanticMatcher:
         
         return min(match_score, 1.0)
 
-    def _calculate_location_match(self, cv: CV, job: Job) -> float:
+    def _calculate_location_match(self, cv: CV, job: ExternalJob) -> float:
         """
         Calculate location match.
         """
@@ -113,7 +113,7 @@ class SemanticMatcher:
         # For now, return neutral score
         return 0.5
 
-    def _calculate_job_type_match(self, cv: CV, job: Job) -> float:
+    def _calculate_job_type_match(self, cv: CV, job: ExternalJob) -> float:
         """
         Calculate job type match.
         """
@@ -124,7 +124,7 @@ class SemanticMatcher:
         # For now, return neutral score
         return 0.5
 
-    def _calculate_semantic_match(self, cv: CV, job: Job) -> float:
+    def _calculate_semantic_match(self, cv: CV, job: ExternalJob) -> float:
         """
         Calculate semantic similarity between CV and job description.
         This is a simplified version - in production, use embeddings.

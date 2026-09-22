@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from app.config.database import Base
 from app.models.user import User
 from app.models.cv import CV
-from app.models.job import Job
+from app.models.job import ExternalJob
 from app.models.notification import Notification
 from app.services.notification_service import NotificationService
 from app.services.matching_service import MatchingService
@@ -73,22 +73,22 @@ def test_match_notification_with_job_details(db_session):
     db_session.commit()
     
     # Create test jobs
-    job1 = Job(
+    job1 = ExternalJob(
+        external_id="job-1",
         title="Software Engineer",
         company="Tech Corp",
         description="Software engineering role",
-        location="Addis Ababa"
+        location="Addis Ababa",
+        apply_url="https://example.com/job-1"
     )
-    job2 = Job(
+    job2 = ExternalJob(
+        external_id="job-2",
         title="Data Analyst",
         company="Data Inc",
         description="Data analysis role",
-        location="Addis Ababa"
+        location="Addis Ababa",
+        apply_url="https://example.com/job-2"
     )
-    db_session.add(job1)
-    db_session.add(job2)
-    db_session.commit()
-    
     # Create match notification with job details
     notification = notification_service.send_match_notification(
         user_id=user.id,
@@ -127,25 +127,26 @@ def test_matching_service_notification_threshold(db_session):
     db_session.add(cv)
     db_session.commit()
     
-    # Create test jobs
-    job1 = Job(
+    # External jobs are supplied by the live source client and never persisted.
+    job1 = ExternalJob(
+        external_id="python-developer",
         title="Python Developer",
         company="Tech Corp",
         description="Python development role",
-        location="Addis Ababa"
+        location="Addis Ababa",
+        apply_url="https://example.com/python-developer"
     )
-    job2 = Job(
+    job2 = ExternalJob(
+        external_id="marketing-manager",
         title="Marketing Manager",
         company="Marketing Inc",
         description="Marketing role",
-        location="Addis Ababa"
+        location="Addis Ababa",
+        apply_url="https://example.com/marketing-manager"
     )
-    db_session.add(job1)
-    db_session.add(job2)
-    db_session.commit()
-    
     # Test matching service
     matching_service = MatchingService(db_session)
+    matching_service.external_job_service.fetch_jobs = lambda: [job1, job2]
     
     # Count notifications before matching
     notifications_before = db_session.query(Notification).filter(

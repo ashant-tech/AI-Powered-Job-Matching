@@ -4,6 +4,7 @@ import os
 import json
 
 from app.models.cv import CV
+from app.models.match import Match
 from app.schemas.cv import CVCreate, CVAnalysis
 from app.config.settings import settings
 from app.cv_processing.pdf_parser import parse_pdf
@@ -22,11 +23,12 @@ class CVService:
         os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
         
         # Save file
+        file_bytes = file.file.read()
         file_extension = file.filename.split('.')[-1].lower()
         file_path = f"{settings.UPLOAD_DIR}/{user_id}_{title}_{file.filename}"
         
         with open(file_path, "wb") as buffer:
-            buffer.write(file.file.read())
+            buffer.write(file_bytes)
         
         # Parse CV based on file type
         parsed_text = ""
@@ -35,18 +37,28 @@ class CVService:
         elif file_extension == "docx":
             parsed_text = parse_docx(file_path)
         else:
-            parsed_text = clean_text(file.file.read().decode('utf-8'))
+            parsed_text = clean_text(file_bytes.decode('utf-8'))
         
-        # Create CV record
-        db_cv = CV(
-            user_id=user_id,
-            title=title,
-            file_path=file_path,
-            file_name=file.filename,
-            parsed_text=parsed_text
-        )
-        
-        self.db.add(db_cv)
+        db_cv = self.db.query(CV).filter(CV.user_id == user_id).first()
+        if db_cv:
+            self.db.query(Match).filter(Match.user_id == user_id, Match.cv_id == db_cv.id).delete()
+            db_cv.title = title
+            db_cv.file_path = file_path
+            db_cv.file_name = file.filename
+            db_cv.parsed_text = parsed_text
+            db_cv.skills = None
+            db_cv.experience = None
+            db_cv.education = None
+        else:
+            db_cv = CV(
+                user_id=user_id,
+                title=title,
+                file_path=file_path,
+                file_name=file.filename,
+                parsed_text=parsed_text
+            )
+            self.db.add(db_cv)
+
         self.db.commit()
         self.db.refresh(db_cv)
         

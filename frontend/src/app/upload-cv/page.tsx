@@ -24,7 +24,7 @@ export default function UploadCVPage() {
   const fetchCVs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -33,7 +33,7 @@ export default function UploadCVPage() {
       if (response.ok) {
         const userData = await response.json();
         // Fetch user's CVs
-        const cvsResponse = await fetch(`http://localhost:8000/api/cv/user/${userData.id}`, {
+        const cvsResponse = await fetch(`/api/cv/user/${userData.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -80,7 +80,7 @@ export default function UploadCVPage() {
       formData.append('file', file);
       formData.append('title', title || file.name);
 
-      const response = await fetch('http://localhost:8000/api/cv/upload', {
+      const response = await fetch('/api/cv/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -90,7 +90,7 @@ export default function UploadCVPage() {
 
       if (response.ok) {
         const cvData = await response.json();
-        setMessage('CV uploaded successfully!');
+        setMessage(cvs.length > 0 ? 'CV replaced successfully!' : 'CV uploaded successfully!');
         setFile(null);
         setTitle('');
         fetchCVs();
@@ -108,7 +108,7 @@ export default function UploadCVPage() {
   const handleAnalyze = async (cvId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/cv/${cvId}/analyze`, {
+      const response = await fetch(`/api/cv/${cvId}/analyze`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -144,7 +144,10 @@ export default function UploadCVPage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-2xl font-bold mb-6">Upload CV</h2>
+          <h2 className="text-2xl font-bold mb-2">{cvs.length > 0 ? 'Update your CV' : 'Upload CV'}</h2>
+          <p className="text-gray-600 mb-6">
+            {cvs.length > 0 ? 'You have one CV. Upload a new file to replace it.' : 'Upload one CV to build your job-matching profile.'}
+          </p>
 
           {message && (
             <div className={`mb-4 p-3 rounded ${message.includes('success') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
@@ -198,14 +201,14 @@ export default function UploadCVPage() {
               disabled={!file || uploading}
               className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {uploading ? 'Uploading...' : 'Upload CV'}
+              {uploading ? 'Uploading...' : cvs.length > 0 ? 'Replace CV' : 'Upload CV'}
             </button>
           </form>
         </div>
 
         {/* Existing CVs */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4">Your CVs</h3>
+          <h3 className="text-xl font-bold mb-4">Your CV</h3>
           {cvs.length === 0 ? (
             <p className="text-gray-600">No CVs uploaded yet</p>
           ) : (
@@ -228,7 +231,7 @@ export default function UploadCVPage() {
                       onClick={() => handleAnalyze(cv.id)}
                       className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition"
                     >
-                      Analyze
+                      Reanalyze
                     </button>
                   </div>
                 </div>

@@ -66,93 +66,6 @@ class JobCollector:
         
         return unique_jobs
 
-    def save_to_database(self, jobs):
-        """Save processed jobs to database"""
-        try:
-            import sys
-            import os
-            backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
-            if backend_path not in sys.path:
-                sys.path.insert(0, backend_path)
-            
-            from app.config.database import SessionLocal, Base, engine
-            from app.models.job import Job
-            from app.models.cv import CV
-            from app.services.matching_service import MatchingService
-            
-            # Create tables if they don't exist
-            Base.metadata.create_all(bind=engine)
-            
-            db = SessionLocal()
-            
-            saved_count = 0
-            for job_data in jobs:
-                # Check if job already exists
-                existing_job = db.query(Job).filter(
-                    Job.source_url == job_data.get('source_url', '')
-                ).first()
-                
-                if not existing_job:
-                    # Create new job
-                    db_job = Job(
-                        title=job_data.get('title', ''),
-                        company=job_data.get('company', ''),
-                        description=job_data.get('description', ''),
-                        requirements=job_data.get('requirements', ''),
-                        skills=job_data.get('skills', ''),
-                        location=job_data.get('location', ''),
-                        salary_min=job_data.get('salary_min', 0),
-                        salary_max=job_data.get('salary_max', 0),
-                        job_type=job_data.get('job_type', 'full-time'),
-                        source=job_data.get('source', ''),
-                        source_url=job_data.get('source_url', ''),
-                        is_active=1
-                    )
-                    db.add(db_job)
-                    saved_count += 1
-            
-            db.commit()
-
-            if saved_count:
-                print(f"New jobs saved: {saved_count}. Triggering matching and notifications...")
-                matching_service = MatchingService(db)
-                cv_count = 0
-                for cv in db.query(CV).all():
-                    try:
-                        print(f"Finding matches for CV {cv.id} (User: {cv.user_id})...")
-                        matching_service.find_matches_for_cv(cv.user_id, cv.id)
-                        cv_count += 1
-                        print(f"Successfully processed CV {cv.id}")
-                    except Exception as e:
-                        print(f"Error matching jobs for CV {cv.id}: {e}")
-                print(f"Processed {cv_count} CVs for new job matches")
-                print("Notifications will be sent automatically for high-quality matches")
-
-            db.close()
-            
-            print(f"Saved {saved_count} new jobs to database")
-            return saved_count
-            
-        except ImportError as e:
-            print(f"Database integration not available: {e}")
-            print("Jobs collected but not saved to database")
-            return 0
-        except Exception as e:
-            print(f"Error saving to database: {e}")
-            return 0
-    
-    def save_to_json(self, jobs, filename="collected_jobs.json"):
-        """Save jobs to JSON file as fallback"""
-        import json
-        try:
-            with open(filename, 'w') as f:
-                json.dump(jobs, f, indent=2)
-            print(f"Saved {len(jobs)} jobs to {filename}")
-            return len(jobs)
-        except Exception as e:
-            print(f"Error saving to JSON: {e}")
-            return 0
-
     def run(self):
         """Main run loop"""
         print("Starting job collector...")
@@ -165,14 +78,7 @@ class JobCollector:
                 # Process jobs
                 processed_jobs = self.process_jobs(jobs)
                 
-                # Save to database
-                print(f"Saving {len(processed_jobs)} jobs to database...")
-                saved_count = self.save_to_database(processed_jobs)
-                
-                # Fallback to JSON if database save failed
-                if saved_count == 0:
-                    print("Database save failed, saving to JSON fallback...")
-                    self.save_to_json(processed_jobs)
+                print(f"Fetched {len(processed_jobs)} current jobs for matching; nothing was persisted")
                 
                 print("Job collection cycle completed")
                 
@@ -187,14 +93,7 @@ class JobCollector:
         print("Running job collection once...")
         jobs = self.collect_jobs()
         processed_jobs = self.process_jobs(jobs)
-        saved_count = self.save_to_database(processed_jobs)
-        
-        # Fallback to JSON if database save failed
-        if saved_count == 0:
-            print("Database save failed, saving to JSON fallback...")
-            self.save_to_json(processed_jobs)
-        
-        print(f"Job collection completed. {len(processed_jobs)} unique jobs processed, {saved_count} saved to database.")
+        print(f"Job collection completed. {len(processed_jobs)} current jobs processed in memory.")
         return processed_jobs
 
 if __name__ == "__main__":

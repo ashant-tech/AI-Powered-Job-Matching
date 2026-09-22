@@ -22,7 +22,7 @@ export default function JobsPage() {
       if (locationFilter) params.append('location', locationFilter);
       if (jobTypeFilter) params.append('job_type', jobTypeFilter);
 
-      const response = await fetch(`http://localhost:8000/api/jobs/?${params.toString()}`);
+      const response = await fetch(`/api/jobs/?${params.toString()}`);
       
       if (response.ok) {
         const jobsData = await response.json();
@@ -114,7 +114,7 @@ export default function JobsPage() {
         ) : (
           <div className="space-y-4">
             {jobs.map((job) => (
-              <div key={job.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+              <div key={job.external_id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-gray-900 mb-2">{job.title}</h3>
@@ -152,11 +152,14 @@ export default function JobsPage() {
                       </div>
                     )}
                   </div>
-                  <button
+                  <a
+                    href={job.apply_url}
+                    target="_blank"
+                    rel="noreferrer"
                     className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition ml-4"
                   >
-                    View Details
-                  </button>
+                    Apply
+                  </a>
                 </div>
               </div>
             ))}

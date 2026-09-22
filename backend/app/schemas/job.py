@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
-from datetime import datetime
 
-class JobBase(BaseModel):
+class ExternalJob(BaseModel):
+    external_id: str
     title: str
     company: str
     description: str
@@ -10,22 +10,9 @@ class JobBase(BaseModel):
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
     job_type: Optional[str] = None
-
-class JobCreate(JobBase):
     requirements: Optional[str] = None
     skills: Optional[str] = None
     source: Optional[str] = None
-    source_url: Optional[str] = None
+    apply_url: str = Field(..., alias="source_url")
 
-class JobResponse(JobBase):
-    id: int
-    requirements: Optional[str] = None
-    skills: Optional[str] = None
-    source: Optional[str] = None
-    source_url: Optional[str] = None
-    is_active: bool
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(populate_by_name=True)

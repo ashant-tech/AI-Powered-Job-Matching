@@ -15,6 +15,20 @@ Authorization: Bearer <your_jwt_token>
 
 ## Endpoints
 
+### External Jobs
+
+External postings are fetched from configured permitted job sources for each request and are held in memory only. The backend does not create or write to a `jobs` database table. Match records retain only the external source identifier and are enriched with the current posting when it is still available.
+
+```http
+GET /jobs?search=python&location=remote&job_type=full-time
+```
+
+Each posting includes `external_id` and `apply_url`. Clients must open `apply_url` to send the user to the original job application website.
+
+Configure permitted JSON job APIs with the comma-separated `EXTERNAL_JOB_API_URLS` backend environment variable. Only HTTPS endpoints on trusted domains are accepted. The defaults include Ethiojobs, HaHuJobs, Reporter Ethiopia, LinkedIn, Indeed, and Glassdoor. Set `TRUSTED_JOB_DOMAINS` to replace that allowlist with your approved domains.
+
+Each API may return an array of postings or `{ "jobs": [...] }`; every posting must include `title`, `company`, `description`, and `apply_url` (or `source_url`/`url`). Application links are also rejected unless they use HTTPS and belong to the trusted-domain allowlist.
+
 ### Authentication
 
 #### Register User

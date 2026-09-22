@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'
 from app.config.database import engine, Base
 from app.models.user import User
 from app.models.cv import CV
-from app.models.job import Job
 from app.models.skill import Skill
 from app.models.match import Match
 from app.models.notification import Notification
@@ -20,7 +19,6 @@ def upgrade():
     """Create initial database schema"""
     print("Running initial migration...")
     
-    # Create all tables
     Base.metadata.create_all(bind=engine)
     
     print("Initial migration completed successfully!")
