@@ -62,6 +62,7 @@ dist/
 
 # Node modules
 node_modules/
+*.tsbuildinfo
 
 # Uploads
 uploads/

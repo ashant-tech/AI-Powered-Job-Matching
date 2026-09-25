@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     COLLECTION_INTERVAL_HOURS: int = 1
     
     FRONTEND_URL: str = "http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:3000"
     
     class Config:
         env_file = ".env"

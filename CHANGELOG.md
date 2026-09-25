@@ -20,6 +20,8 @@
 
 - User registration and authentication
 - CV upload and processing
+
+
 - AI-powered CV and job analysis
 - Job browsing and matching
 - Match score calculation

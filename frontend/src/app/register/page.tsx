@@ -13,6 +13,7 @@ export default function RegisterPage() {
     confirmPassword: '',
     full_name: '',
     phone: '',
+    telegram_username: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,6 +46,7 @@ export default function RegisterPage() {
           password: formData.password,
           full_name: formData.full_name,
           phone: formData.phone,
+          telegram_username: formData.telegram_username,
         }),
       });
 
@@ -132,6 +134,23 @@ export default function RegisterPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="+1 234 567 8900"
             />
+          </div>
+
+          <div>
+            <label htmlFor="telegram_username" className="block text-sm font-medium text-gray-700 mb-2">
+              Telegram Username (Optional)
+            </label>
+            <input
+              id="telegram_username"
+              type="text"
+              value={formData.telegram_username}
+              onChange={(e) => setFormData({ ...formData, telegram_username: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="@username (without @)"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter your Telegram username to receive job match notifications
+            </p>
           </div>
 
           <div>

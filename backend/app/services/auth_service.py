@@ -20,6 +20,7 @@ class AuthService:
 
     def create_user(self, user: UserCreate) -> User:
         hashed_password = pwd_context.hash(user.password)
+        telegram_username = (user.telegram_username or "").strip().lstrip("@") or None
         db_user = User(
             email=user.email,
             username=user.username,
@@ -27,7 +28,8 @@ class AuthService:
             full_name=user.full_name,
             phone=user.phone,
             is_seeker=user.is_seeker,
-            telegram_username=user.telegram_username
+            telegram_username=telegram_username,
+            telegram_notifications_enabled=telegram_username is not None
         )
         self.db.add(db_user)
         self.db.commit()
@@ -69,6 +71,11 @@ class AuthService:
             raise ValueError("User not found")
         
         update_data = user_update.model_dump(exclude_unset=True)
+        if "telegram_username" in update_data:
+            username = (update_data["telegram_username"] or "").strip().lstrip("@") or None
+            update_data["telegram_username"] = username
+            if username:
+                update_data["telegram_notifications_enabled"] = True
         for field, value in update_data.items():
             setattr(user, field, value)
         

@@ -11,5 +11,6 @@ export interface Job {
   job_type?: string;
   source?: string;
   apply_url: string;
+  deadline?: string;
 }
 

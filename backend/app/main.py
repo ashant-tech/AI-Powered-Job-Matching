@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config.database import engine, Base
+from app.config.settings import settings
 from app.routes import auth, users, cv, jobs, matching, notifications, collaborations
 from app.middleware.error_handler import (
     http_exception_handler,
@@ -23,7 +24,9 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"] if settings.CORS_ORIGINS == "*" else [
+        origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

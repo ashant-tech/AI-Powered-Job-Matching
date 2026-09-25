@@ -1,8 +1,11 @@
+import json
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.models.notification import Notification
+from app.models.job import ExternalJob
 from app.models.user import User
 from app.notifications.telegram import TelegramNotificationService
+from app.services.job_service import JobService
 
 class NotificationService:
     def __init__(self, db: Session):
@@ -15,13 +18,15 @@ class NotificationService:
         notification_type: str,
         title: str,
         message: str,
-        send_telegram: bool = True
+        send_telegram: bool = True,
+        external_job_ids: Optional[List[str]] = None
     ) -> Notification:
         notification = Notification(
             user_id=user_id,
             type=notification_type,
             title=title,
-            message=message
+            message=message,
+            external_job_ids=json.dumps(external_job_ids) if external_job_ids else None
         )
         
         self.db.add(notification)
@@ -83,7 +88,63 @@ class NotificationService:
         except Exception as e:
             print(f"Error sending Telegram notification: {e}")
 
+    def purge_expired_notifications(self, user_id: Optional[int] = None) -> int:
+        """Remove or trim notifications whose jobs have expired.
+
+        Deletes match notifications whose jobs are all expired and rebuilds
+        messages for partially expired ones. Returns the number deleted.
+        """
+        JobService(self.db).deactivate_expired_jobs()
+        JobService(self.db).purge_expired_matches()
+
+        query = self.db.query(Notification).filter(Notification.external_job_ids.isnot(None))
+        if user_id:
+            query = query.filter(Notification.user_id == user_id)
+
+        deleted = 0
+        for notification in query.all():
+            try:
+                job_ids = json.loads(notification.external_job_ids or "[]")
+            except json.JSONDecodeError:
+                job_ids = []
+
+            if not job_ids:
+                continue
+
+            active_jobs = self.db.query(ExternalJob).filter(
+                ExternalJob.external_id.in_(job_ids),
+                ExternalJob.is_active == True  # noqa: E712
+            ).all()
+
+            if not active_jobs:
+                self.db.delete(notification)
+                deleted += 1
+            elif len(active_jobs) < len(job_ids):
+                notification.external_job_ids = json.dumps([job.external_id for job in active_jobs])
+                notification.message = self.build_match_message(active_jobs)
+
+        self.db.commit()
+        return deleted
+
+    @staticmethod
+    def build_match_message(top_jobs: list) -> str:
+        job_details = []
+        for i, job in enumerate(top_jobs[:3], 1):
+            deadline_part = f" (apply by {job.deadline.strftime('%b %d, %Y')})" if job.deadline else ""
+            job_details.append(f"{i}. {job.title} at {job.company}{deadline_part}")
+
+        if len(top_jobs) > 3:
+            job_details.append(f"... and {len(top_jobs) - 3} more")
+
+        return (
+            f"We found {len(top_jobs)} active job matches for your profile:\n\n"
+            + "\n".join(job_details)
+            + "\n\nCheck your recommendations for details!"
+        )
+
     def get_user_notifications(self, user_id: int, unread_only: bool = False) -> List[Notification]:
+        self.purge_expired_notifications(user_id)
+
         query = self.db.query(Notification).filter(Notification.user_id == user_id)
         
         if unread_only:
@@ -114,23 +175,22 @@ class NotificationService:
     def send_match_notification(self, user_id: int, match_count: int, top_jobs: list = None) -> Notification:
         user = self.db.query(User).filter(User.id == user_id).first()
         user_name = user.full_name if user else "User"
-        
+
         title = "New Job Matches Found"
-        
-        # Build detailed message with job information
+
         if top_jobs:
-            job_details = []
-            for i, job in enumerate(top_jobs[:3], 1):
-                job_details.append(f"{i}. {job.title} at {job.company}")
-            
-            if len(top_jobs) > 3:
-                job_details.append(f"... and {len(top_jobs) - 3} more")
-            
-            message = f"We found {match_count} new job matches for your profile:\n\n" + "\n".join(job_details) + "\n\nCheck your recommendations for details!"
+            message = self.build_match_message(top_jobs)
         else:
             message = f"We found {match_count} new job matches for your profile. Check your recommendations!"
-        
-        notification = self.create_notification(user_id, "match", title, message, send_telegram=False)
+
+        notification = self.create_notification(
+            user_id,
+            "match",
+            title,
+            message,
+            send_telegram=False,
+            external_job_ids=[job.external_id for job in (top_jobs or [])]
+        )
         
         # Send Telegram notification with job details
         if user and user.telegram_notifications_enabled and top_jobs:

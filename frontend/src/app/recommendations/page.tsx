@@ -161,6 +161,11 @@ export default function RecommendationsPage() {
                     </div>
                     <div className="flex gap-4 text-sm text-gray-600 mb-3">
                       {match.job && <span>{match.job.company}</span>}
+                      {match.job?.deadline && (
+                        <span className="flex items-center gap-1">
+                          ⏳ Apply by {new Date(match.job.deadline).toLocaleDateString()}
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         Status: {match.status}
                       </span>

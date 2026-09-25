@@ -4,7 +4,7 @@ export interface Match {
   id: number;
   user_id: number;
   cv_id: number;
-  job_id: number;
+  external_job_id: string;
   match_score: number;
   match_reasons?: string;
   status: string;

@@ -1,0 +1,38 @@
+databases:
+  - name: job-matching-db
+    databaseName: jobmatching
+    user: jobmatching
+    plan: free
+
+services:
+  - type: web
+    name: job-matching-backend
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: job-matching-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: '*'
+      - key: JOB_COLLECTION_ENABLED
+        value: 'false'
+
+  - type: web
+    name: job-matching-frontend
+    runtime: docker
+    rootDir: frontend
+    plan: free
+    envVars:
+      - key: BACKEND_PROTOCOL
+        value: https
+      - key: BACKEND_HOST
+        fromService:
+          type: web
+          name: job-matching-backend
+          property: host

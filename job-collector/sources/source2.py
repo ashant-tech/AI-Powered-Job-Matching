@@ -6,6 +6,10 @@ from typing import List, Dict
 import time
 import re
 from bs4 import BeautifulSoup
+import urllib3
+
+# Disable SSL warnings for development
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class Source2:
     def __init__(self):
@@ -17,57 +21,97 @@ class Source2:
         jobs = []
         
         try:
-            # HaHuJobs job listings page
-            jobs_url = f"{self.base_url}/jobs"
+            # Try multiple endpoints
+            endpoints = [
+                f"{self.base_url}/jobs",
+                f"{self.base_url}/vacancies",
+                f"{self.base_url}/",
+            ]
             
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             }
             
-            response = requests.get(jobs_url, headers=headers, timeout=30)
-            
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
-                
-                # Find job listings - adjust based on actual HTML structure
-                job_listings = soup.find_all('div', class_='job-item') or soup.find_all('div', class_='job-card') or soup.find_all('div', class_='listing')
-                
-                for listing in job_listings:
-                    job = self._parse_hahujobs_job(listing)
-                    if job:
-                        jobs.append(job)
+            for endpoint in endpoints:
+                try:
+                    print(f"Trying HaHuJobs endpoint: {endpoint}")
+                    response = requests.get(endpoint, headers=headers, timeout=30, allow_redirects=True, verify=False)
+                    
+                    if response.status_code == 200:
+                        soup = BeautifulSoup(response.content, 'html.parser')
                         
+                        # Try multiple selectors
+                        selectors = [
+                            'div.job-item',
+                            'div.job-card',
+                            'div[class*="job"]',
+                            'article.job',
+                            'div.vacancy',
+                            'div[class*="listing"]',
+                        ]
+                        
+                        job_listings = []
+                        for selector in selectors:
+                            found = soup.select(selector)
+                            if found:
+                                job_listings = found
+                                print(f"Found {len(found)} job listings with selector: {selector}")
+                                break
+                        
+                        if job_listings:
+                            for listing in job_listings[:10]:
+                                job = self._parse_hahujobs_job(listing)
+                                if job:
+                                    jobs.append(job)
+                            break
+                    else:
+                        print(f"Endpoint {endpoint} returned status code: {response.status_code}")
+                        
+                except Exception as e:
+                    print(f"Error with endpoint {endpoint}: {e}")
+                    continue
+            
+            if jobs:
+                print(f"Successfully scraped {len(jobs)} real jobs from HaHuJobs")
+                return jobs
             else:
-                print(f"HaHuJobs returned status code: {response.status_code}")
+                print("No jobs found from any endpoint, using sample data")
                 return self._get_sample_jobs()
                 
         except Exception as e:
             print(f"Error fetching from HaHuJobs: {e}")
             return self._get_sample_jobs()
         
-        # Add rate limiting
         time.sleep(2)
-        
         return jobs
     
     def _parse_hahujobs_job(self, listing) -> Dict:
         """Parse individual job listing from HaHuJobs"""
         try:
-            # Extract job title
-            title_elem = listing.find('h3') or listing.find('h2') or listing.find('a', class_='job-title')
+            # Extract job title - try multiple selectors
+            title_elem = (listing.find('h3') or listing.find('h2') or 
+                          listing.find('h4') or listing.find('a', class_='job-title') or
+                          listing.find('span', class_='title'))
             title = title_elem.get_text(strip=True) if title_elem else "Unknown Position"
             
-            # Extract company
-            company_elem = listing.find('span', class_='company') or listing.find('div', class_='company-name')
+            # Extract company - try multiple selectors
+            company_elem = (listing.find('span', class_='company') or 
+                           listing.find('div', class_='company-name') or
+                           listing.find('span', class_='employer'))
             company = company_elem.get_text(strip=True) if company_elem else "Unknown Company"
             
-            # Extract location
-            location_elem = listing.find('span', class_='location') or listing.find('div', class_='location')
+            # Extract location - try multiple selectors
+            location_elem = (listing.find('span', class_='location') or 
+                           listing.find('div', class_='location') or
+                           listing.find('span', class_='city'))
             location = location_elem.get_text(strip=True) if location_elem else "Ethiopia"
             
-            # Extract description
-            desc_elem = listing.find('div', class_='description') or listing.find('p', class_='job-description')
-            description = desc_elem.get_text(strip=True) if desc_elem else ""
+            # Extract description - try multiple selectors
+            desc_elem = (listing.find('div', class_='description') or 
+                         listing.find('p', class_='job-description') or
+                         listing.find('div', class_='summary'))
+            description = desc_elem.get_text(strip=True) if desc_elem else listing.get_text(strip=True)[:200]
             
             # Extract job link
             link_elem = listing.find('a', href=True)

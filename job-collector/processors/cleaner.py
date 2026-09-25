@@ -66,6 +66,10 @@ class JobCleaner:
         # Keep source information
         cleaned['source'] = job.get('source', 'unknown')
         cleaned['source_url'] = job.get('source_url', '')
+        if job.get('external_id'):
+            cleaned['external_id'] = job['external_id']
+        if job.get('deadline'):
+            cleaned['deadline'] = job['deadline']
         
         # Set default values
         cleaned['is_active'] = True
@@ -92,8 +96,16 @@ class JobCleaner:
     def clean_skills(self, skills) -> str:
         """Clean and normalize skills list"""
         if isinstance(skills, str):
-            # If skills is a string, try to parse it
-            skills = [skill.strip() for skill in skills.split(',')]
+            import json
+            stripped = skills.strip()
+            if stripped.startswith("["):
+                # Already a JSON array (canonical format)
+                try:
+                    skills = json.loads(stripped)
+                except ValueError:
+                    skills = [skill.strip() for skill in stripped.split(',')]
+            else:
+                skills = [skill.strip() for skill in stripped.split(',')]
         
         if not isinstance(skills, list):
             return "[]"

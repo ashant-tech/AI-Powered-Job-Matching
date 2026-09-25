@@ -10,7 +10,7 @@ services:
       - ./backend:/app
       - ./backend/uploads:/app/uploads
     environment:
-      - DATABASE_URL=sqlite:///./job_matching.db
+      - DATABASE_URL=postgresql://jobmatching:jobmatching@db:5432/jobmatching
       - SECRET_KEY=your-secret-key-change-in-production
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     depends_on:
@@ -51,7 +51,7 @@ services:
       - DATABASE_URL=postgresql://jobmatching:jobmatching@db:5432/jobmatching
     depends_on:
       - db
-    command: python main.py
+    command: python -c "from main import JobCollector; JobCollector().run()"
 
 volumes:
   postgres_data:

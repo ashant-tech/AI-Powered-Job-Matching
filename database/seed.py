@@ -3,6 +3,7 @@ Database seed script - populate database with initial data
 """
 import sys
 import os
+from datetime import datetime, timedelta
 
 # Add the backend directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
@@ -10,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 from sqlalchemy.orm import Session
 from app.config.database import engine, SessionLocal, Base
 from app.models.user import User
-from app.models.job import Job
+from app.models.job import ExternalJob
 from app.models.skill import Skill
 from app.models.notification import Notification
 from app.models.cv import CV
@@ -83,76 +84,87 @@ def seed_database():
         
         # Create sample jobs
         print("Creating sample jobs...")
+        seed_deadline = datetime.utcnow() + timedelta(days=30)
         jobs = [
-            Job(
+            ExternalJob(
+                external_id="seed-1",
                 title="Senior Software Engineer",
                 company="Tech Company Inc",
                 description="We are looking for a senior software engineer to join our growing team. You will be responsible for developing and maintaining high-quality software solutions.",
                 requirements='5+ years of experience, Proficiency in Python and JavaScript, Experience with cloud platforms',
-                skills='python, javascript, cloud, api development',
+                skills='["python", "javascript", "cloud", "api development"]',
                 location="San Francisco, CA",
                 salary_min=120000,
                 salary_max=180000,
                 job_type="full-time",
                 source="manual",
-                source_url="https://example.com/job/1",
-                is_active=1
+                apply_url="https://example.com/job/1",
+                deadline=seed_deadline,
+                is_active=True
             ),
-            Job(
+            ExternalJob(
+                external_id="seed-2",
                 title="Data Scientist",
                 company="Data Corp",
                 description="Join our data science team to work on cutting-edge machine learning projects. You will analyze large datasets and build predictive models.",
                 requirements='3+ years of experience, Strong Python skills, Experience with ML frameworks',
-                skills='python, machine learning, data analysis, statistics',
+                skills='["python", "machine learning", "data analysis", "statistics"]',
                 location="New York, NY",
                 salary_min=100000,
                 salary_max=150000,
                 job_type="full-time",
                 source="manual",
-                source_url="https://example.com/job/2",
-                is_active=1
+                apply_url="https://example.com/job/2",
+                deadline=seed_deadline,
+                is_active=True
             ),
-            Job(
+            ExternalJob(
+                external_id="seed-3",
                 title="Frontend Developer",
                 company="Web Solutions",
                 description="We need a skilled frontend developer to build responsive and user-friendly web applications using modern frameworks.",
                 requirements='2+ years of experience, Strong React skills, CSS/HTML expertise',
-                skills='javascript, react, css, html, frontend',
+                skills='["javascript", "react", "css", "html", "frontend"]',
                 location="Remote",
                 salary_min=80000,
                 salary_max=120000,
                 job_type="remote",
                 source="manual",
-                source_url="https://example.com/job/3",
-                is_active=1
+                apply_url="https://example.com/job/3",
+                deadline=seed_deadline,
+                is_active=True
             ),
-            Job(
+            ExternalJob(
+                external_id="seed-4",
                 title="DevOps Engineer",
                 company="Cloud Systems",
                 description="Looking for a DevOps engineer to manage our cloud infrastructure and implement CI/CD pipelines.",
                 requirements='3+ years of experience, AWS/GCP experience, Docker and Kubernetes',
-                skills='docker, kubernetes, aws, ci/cd, linux',
+                skills='["docker", "kubernetes", "aws", "ci/cd", "linux"]',
                 location="Austin, TX",
                 salary_min=110000,
                 salary_max=160000,
                 job_type="full-time",
                 source="manual",
-                source_url="https://example.com/job/4",
-                is_active=1
+                apply_url="https://example.com/job/4",
+                deadline=seed_deadline,
+                is_active=True
             ),
-            Job(
+            ExternalJob(
+                external_id="seed-5",
                 title="Product Manager",
                 company="StartupXYZ",
                 description="Join our product team to drive product strategy and work closely with engineering and design teams.",
                 requirements='2+ years of product management experience, Agile methodology, Strong communication skills',
-                skills='product management, agile, communication, user research',
+                skills='["product management", "agile", "communication", "user research"]',
                 location="Remote",
                 salary_min=90000,
                 salary_max=130000,
                 job_type="remote",
                 source="manual",
-                source_url="https://example.com/job/5",
-                is_active=1
+                apply_url="https://example.com/job/5",
+                deadline=seed_deadline,
+                is_active=True
             )
         ]
         

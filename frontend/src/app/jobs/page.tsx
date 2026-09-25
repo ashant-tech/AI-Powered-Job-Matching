@@ -40,6 +40,14 @@ export default function JobsPage() {
     fetchJobs();
   };
 
+  const getDeadlineDisplay = (deadline: string) => {
+    const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (days <= 0) return { text: 'Closed', urgent: true };
+    if (days === 1) return { text: 'Apply by tomorrow', urgent: true };
+    if (days <= 7) return { text: `Apply by ${new Date(deadline).toLocaleDateString()} (${days} days left)`, urgent: true };
+    return { text: `Apply by ${new Date(deadline).toLocaleDateString()}`, urgent: false };
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -133,6 +141,11 @@ export default function JobsPage() {
                       {job.salary_min && job.salary_max && (
                         <span className="flex items-center gap-1">
                           💰 ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
+                        </span>
+                      )}
+                      {job.deadline && (
+                        <span className={`flex items-center gap-1 ${getDeadlineDisplay(job.deadline).urgent ? 'text-red-600 font-semibold' : ''}`}>
+                          ⏳ {getDeadlineDisplay(job.deadline).text}
                         </span>
                       )}
                     </div>

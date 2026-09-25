@@ -13,6 +13,7 @@ class JobInfo(BaseModel):
     job_type: Optional[str] = None
     source: Optional[str] = None
     apply_url: str
+    deadline: Optional[datetime] = None
     
     class Config:
         from_attributes = True

@@ -156,6 +156,20 @@ This will start:
 - PostgreSQL database
 - Job collector service
 
+## Render Deployment
+
+The repository includes a `render.yaml` Blueprint for deploying the frontend, backend, and PostgreSQL database.
+
+1. Push the repository to GitHub or GitLab.
+2. In Render, choose **New > Blueprint** and select the repository.
+3. Review the services, then apply the Blueprint.
+4. After the services deploy, open the frontend service URL. The frontend proxies `/api` requests to the backend service.
+5. Add `OPENAI_API_KEY` and any email, SMS, or Telegram credentials in the backend service environment if those features are needed.
+
+The free web services can spin down when idle, so the first request after inactivity may take longer. The free filesystem is ephemeral: uploaded CV files should not be treated as permanent storage. For production CV retention, update `CVService` to use object storage such as S3-compatible storage. The job collector is disabled in the Blueprint because a free Render web service is not a reliable scheduled worker; run it from a paid worker/cron service or another scheduler and point its `DATABASE_URL` at the Render database.
+
+Render's free PostgreSQL availability and retention rules can change. If the Blueprint does not offer a free database in your account, create a supported PostgreSQL database separately and set the backend `DATABASE_URL` environment variable to its connection string.
+
 ## 📖 API Documentation
 
 Comprehensive API documentation is available in the `docs/api-documentation.md` file.

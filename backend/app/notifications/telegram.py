@@ -137,10 +137,15 @@ Great news! We found <b>{match_count}</b> new job matches that align with your p
         
         # Add top 3 jobs
         for i, job in enumerate(top_jobs[:3], 1):
-            message += f"\n{i}. <b>{job.get('title', 'Position')}</b> at {job.get('company', 'Company')}"
-            message += f"\n   💰 {job.get('salary_min', 0):,.0f} - {job.get('salary_max', 0):,.0f} ETB"
-            message += f"\n   📍 {job.get('location', 'Ethiopia')}"
-            message += f"\n   🔗 {job.get('source_url', 'Link')}"
+            message += f"\n{i}. <b>{job.title}</b> at {job.company}"
+            if job.salary_min and job.salary_max:
+                message += f"\n   💰 {job.salary_min:,.0f} - {job.salary_max:,.0f} ETB"
+            message += f"\n   📍 {job.location or 'Ethiopia'}"
+            deadline_part = (
+                f" (apply by {job.deadline.strftime('%b %d, %Y')})" if job.deadline else ""
+            )
+            message += f"\n   ⏳{deadline_part}" if deadline_part else ""
+            message += f"\n   🔗 {job.apply_url}"
             message += "\n"
         
         message += f"""

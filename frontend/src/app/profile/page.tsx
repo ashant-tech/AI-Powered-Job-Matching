@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
+    telegram_username: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -28,7 +29,7 @@ export default function ProfilePage() {
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -40,6 +41,7 @@ export default function ProfilePage() {
         setFormData({
           full_name: userData.full_name || '',
           phone: userData.phone || '',
+          telegram_username: userData.telegram_username || '',
         });
       }
     } catch (error) {
@@ -55,7 +57,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}`, {
+      const response = await fetch(`/api/users/${user.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -180,6 +182,29 @@ export default function ProfilePage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
                 />
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Telegram Username</label>
+              {editMode ? (
+                <input
+                  type="text"
+                  value={formData.telegram_username}
+                  onChange={(e) => setFormData({ ...formData, telegram_username: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="@username (without @)"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={user?.telegram_username || 'Not set'}
+                  disabled
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                />
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your Telegram username to receive job match notifications
+              </p>
             </div>
 
             <div>

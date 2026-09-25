@@ -29,12 +29,14 @@ class DuplicateDetector:
     
     def _generate_job_signature(self, job: dict) -> str:
         """Generate a unique signature for a job"""
-        # Create a signature based on key fields
+        # Create a signature based on key fields plus a description slice, so
+        # distinct jobs that share a generic company fallback are not collapsed
         signature_parts = [
             job.get('title', '').lower().strip(),
             job.get('company', '').lower().strip(),
             job.get('location', '').lower().strip(),
             job.get('job_type', '').lower().strip(),
+            job.get('description', '')[:100].lower().strip(),
         ]
         
         signature_string = '|'.join(signature_parts)

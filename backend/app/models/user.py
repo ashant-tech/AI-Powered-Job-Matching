@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
 from app.config.database import Base
 
 class User(Base):
@@ -22,5 +21,3 @@ class User(Base):
     telegram_chat_id = Column(String, nullable=True)  # Telegram chat ID for notifications
     telegram_notifications_enabled = Column(Boolean, default=False)  # Enable/disable Telegram notifications
     telegram_username = Column(String, nullable=True)  # Telegram username (optional)
-    
-    cvs = relationship("CV", back_populates="user")
