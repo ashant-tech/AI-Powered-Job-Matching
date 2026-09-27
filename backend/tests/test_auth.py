@@ -9,8 +9,16 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.config.database import SessionLocal
 from app.models.user import User
+from app.routes.auth import register_limiter, login_limiter
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits():
+    register_limiter.reset()
+    login_limiter.reset()
+    yield
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -116,3 +124,30 @@ def test_register_with_telegram_username_enables_notifications():
         assert user.telegram_notifications_enabled is True
     finally:
         db.close()
+
+
+def test_register_rate_limited():
+    # Invalid bodies keep the DB untouched; the limiter dependency still runs
+    # and counts each attempt (5/hour allowed).
+    for _ in range(5):
+        response = client.post("/api/auth/register", json={})
+        assert response.status_code == 422
+
+    response = client.post("/api/auth/register", json={})
+    assert response.status_code == 429
+    assert "Retry-After" in response.headers
+
+
+def test_login_rate_limited():
+    for _ in range(20):
+        response = client.post(
+            "/api/auth/login",
+            data={"username": "nobody@example.com", "password": "WrongPassword"}
+        )
+        assert response.status_code == 401
+
+    response = client.post(
+        "/api/auth/login",
+        data={"username": "nobody@example.com", "password": "WrongPassword"}
+    )
+    assert response.status_code == 429

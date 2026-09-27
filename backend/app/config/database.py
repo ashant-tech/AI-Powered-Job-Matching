@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config.settings import settings
@@ -11,6 +11,30 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+# Lightweight column migrations: create_all never alters existing tables,
+# so new columns are added here (runs on backend startup and in the collector).
+_COLUMN_MIGRATIONS = {
+    "users": {"department": "VARCHAR"},
+    "external_jobs": {"field": "VARCHAR"},
+    "cvs": {"field": "VARCHAR"},
+}
+
+
+def ensure_schema(target_engine=None):
+    """Create missing tables and add missing columns (idempotent)."""
+    eng = target_engine or engine
+    Base.metadata.create_all(bind=eng)
+    inspector = inspect(eng)
+    for table, columns in _COLUMN_MIGRATIONS.items():
+        if table not in inspector.get_table_names():
+            continue
+        existing = {col["name"] for col in inspector.get_columns(table)}
+        for column, col_type in columns.items():
+            if column not in existing:
+                with eng.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+
 
 def get_db():
     db = SessionLocal()

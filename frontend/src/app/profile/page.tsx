@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FIELD_LABELS } from '../../services/jobApi';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function ProfilePage() {
     phone: '',
     telegram_username: '',
   });
+  const [detectedFieldLabel, setDetectedFieldLabel] = useState('Not detected yet — upload a CV');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -43,11 +45,29 @@ export default function ProfilePage() {
           phone: userData.phone || '',
           telegram_username: userData.telegram_username || '',
         });
+        fetchDetectedField(userData.id, token);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDetectedField = async (userId: number, token: string | null) => {
+    try {
+      const response = await fetch(`/api/cv/user/${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const cvs = await response.json();
+        const cv = (cvs || []).find((c: any) => c.field);
+        if (cv && FIELD_LABELS[cv.field]) {
+          setDetectedFieldLabel(FIELD_LABELS[cv.field]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching detected field:', error);
     }
   };
 
@@ -185,6 +205,20 @@ export default function ProfilePage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Detected Field (from your CV)</label>
+              <input
+                type="text"
+                value={detectedFieldLabel}
+                disabled
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                We read your CV (education, skills, experience) and match you with jobs in your field
+                automatically. Upload or replace your CV to update this.
+              </p>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Telegram Username</label>
               {editMode ? (
                 <input
@@ -242,6 +276,7 @@ export default function ProfilePage() {
                     setFormData({
                       full_name: user?.full_name || '',
                       phone: user?.phone || '',
+                      telegram_username: user?.telegram_username || '',
                     });
                   }}
                   className="flex-1 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"

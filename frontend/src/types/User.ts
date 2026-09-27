@@ -9,6 +9,7 @@ export interface User {
   created_at: string;
   updated_at?: string;
   profile?: string;
+  department?: string;
   telegram_chat_id?: string;
   telegram_notifications_enabled?: boolean;
   telegram_username?: string;
@@ -21,12 +22,14 @@ export interface UserCreate {
   full_name?: string;
   phone?: string;
   is_seeker?: boolean;
+  department?: string;
 }
 
 export interface UserUpdate {
   full_name?: string;
   phone?: string;
   profile?: string;
+  department?: string;
   telegram_chat_id?: string;
   telegram_username?: string;
   telegram_notifications_enabled?: boolean;

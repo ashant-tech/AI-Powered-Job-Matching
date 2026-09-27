@@ -1,0 +1,31 @@
+# HTTPS override: docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+# Requires DOMAIN (and DNS pointed at this host) in the shell env or root .env.
+# Caddy obtains/renews Let's Encrypt certificates automatically.
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  # Behind the proxy, backend/frontend are no longer exposed directly
+  backend:
+    ports: !override
+      - "8000"
+  frontend:
+    ports: !override
+      - "3000"
+
+volumes:
+  caddy_data:
+  caddy_config:

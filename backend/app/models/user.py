@@ -13,6 +13,7 @@ class User(Base):
     phone = Column(String)
     is_active = Column(Boolean, default=True)
     is_seeker = Column(Boolean, default=True)  # True for job seeker, False for employer
+    department = Column(String)  # Field of study, e.g. "Computer Science" — drives job recommendations
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     profile = Column(Text)  # JSON string for profile data

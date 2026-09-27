@@ -8,8 +8,16 @@ new high-quality matches.
 import sys
 import os
 import time
+import logging
 
 from dotenv import load_dotenv
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    stream=sys.stdout,
+)
+logger = logging.getLogger("job-collector")
 
 # Load collector environment (must happen before backend settings import)
 load_dotenv()
@@ -51,7 +59,8 @@ def get_session():
         database_url,
         connect_args={"check_same_thread": False} if database_url.startswith("sqlite") else {},
     )
-    Base.metadata.create_all(bind=engine)
+    from app.config.database import ensure_schema
+    ensure_schema(engine)
     return sessionmaker(autocommit=False, autoflush=False, bind=engine)()
 
 
@@ -67,6 +76,8 @@ class JobCollector:
         ]
         self.cleaner = JobCleaner()
         self.duplicate_detector = DuplicateDetector()
+        # Consecutive bad cycles per source, for escalating silent-death alerts
+        self._failed_cycles = {}
 
     def collect_jobs(self):
         """Collect jobs from all sources"""
@@ -74,25 +85,46 @@ class JobCollector:
 
         for source in self.sources:
             try:
-                print(f"Collecting jobs from {source.name}...")
+                logger.info("Collecting jobs from %s...", source.name)
                 jobs = source.fetch_jobs()
-                print(f"Found {len(jobs)} jobs from {source.name}")
+                logger.info("Found %d jobs from %s", len(jobs), source.name)
+                if jobs:
+                    self._failed_cycles.pop(source.name, None)
+                else:
+                    self._alert_empty_source(source.name)
                 all_jobs.extend(jobs)
             except Exception as e:
-                print(f"Error collecting from {source.name}: {e}")
+                logger.error("Error collecting from %s: %s", source.name, e)
+                self._alert_empty_source(source.name)
 
-        print(f"Total jobs collected: {len(all_jobs)}")
+        logger.info("Total jobs collected: %d", len(all_jobs))
         return all_jobs
+
+    def _alert_empty_source(self, source_name):
+        """Escalate when a source keeps returning nothing (API may have changed)."""
+        count = self._failed_cycles.get(source_name, 0) + 1
+        self._failed_cycles[source_name] = count
+        if count >= 3:
+            logger.error(
+                "SOURCE DEAD: %s returned 0 jobs for %d consecutive cycles - "
+                "the source may have changed or blocked us; manual check needed",
+                source_name, count,
+            )
+        else:
+            logger.warning(
+                "SOURCE ALERT: %s returned 0 jobs (%d consecutive cycle(s))",
+                source_name, count,
+            )
 
     def process_jobs(self, jobs):
         """Clean collected jobs and drop duplicates"""
-        print("Cleaning jobs...")
+        logger.info("Cleaning jobs...")
         cleaned_jobs = self.cleaner.clean_jobs(jobs)
-        print(f"Cleaned {len(cleaned_jobs)} jobs")
+        logger.info("Cleaned %d jobs", len(cleaned_jobs))
 
-        print("Detecting duplicates...")
+        logger.info("Detecting duplicates...")
         unique_jobs = self.duplicate_detector.remove_duplicates(cleaned_jobs)
-        print(f"Found {len(unique_jobs)} unique jobs")
+        logger.info("Found %d unique jobs", len(unique_jobs))
 
         return unique_jobs
 
@@ -101,21 +133,21 @@ class JobCollector:
         db = get_session()
         try:
             counts = upsert_jobs(db, processed_jobs)
-            print(
-                f"Persisted jobs: {counts['created']} created, "
-                f"{counts['updated']} updated, {counts['skipped']} skipped"
+            logger.info(
+                "Persisted jobs: %d created, %d updated, %d skipped",
+                counts['created'], counts['updated'], counts['skipped'],
             )
 
             deactivated = JobService(db).deactivate_expired_jobs()
             purged_matches = JobService(db).purge_expired_matches()
             purged_notifications = NotificationService(db).purge_expired_notifications()
-            print(
-                f"Expiry: {deactivated} jobs deactivated, "
-                f"{purged_matches} matches purged, {purged_notifications} notifications purged"
+            logger.info(
+                "Expiry: %d jobs deactivated, %d matches purged, %d notifications purged",
+                deactivated, purged_matches, purged_notifications,
             )
 
             matched_cvs = MatchingService(db).find_matches_for_all_users()
-            print(f"Matching: {matched_cvs} CVs processed")
+            logger.info("Matching: %d CVs processed", matched_cvs)
         finally:
             db.close()
 
@@ -124,35 +156,32 @@ class JobCollector:
         jobs = self.collect_jobs()
         processed_jobs = self.process_jobs(jobs)
         self.persist_and_notify(processed_jobs)
-        print("Job collection cycle completed")
+        logger.info("Job collection cycle completed")
 
     def run(self):
         """Main run loop"""
-        print("Starting job collector...")
+        logger.info("Starting job collector...")
 
         while True:
             try:
                 self.run_cycle()
             except Exception as e:
-                print(f"Error in job collection cycle: {e}")
+                logger.error("Error in job collection cycle: %s", e)
 
             # Wait for next scheduled run
             time.sleep(3600)  # Run every hour
 
     def run_once(self):
         """Run job collection once"""
-        print("Running job collection once...")
+        logger.info("Running job collection once...")
         self.run_cycle()
-        print("Job collection completed.")
+        logger.info("Job collection completed.")
 
 if __name__ == "__main__":
     collector = JobCollector()
 
-    # Run once for testing
-    collector.run_once()
-
-    # Or run continuously with scheduler
-    # schedule.every(1).hours.do(collector.run_once)
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(60)
+    if "--loop" in sys.argv:
+        # Persistent hourly service mode (used by docker-compose)
+        collector.run()
+    else:
+        collector.run_once()

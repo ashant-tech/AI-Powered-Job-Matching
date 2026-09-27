@@ -4,11 +4,13 @@ from typing import List
 from app.models.match import Match
 from app.models.cv import CV
 from app.models.job import ExternalJob
+from app.models.user import User
 from app.schemas.match import MatchResponse, JobInfo
 from app.ai.semantic_matcher import SemanticMatcher
 from app.ai.ranking import rank_matches
 from app.services.notification_service import NotificationService
 from app.services.external_job_service import ExternalJobService
+from app.services.field_classifier import field_matches, normalize_department
 from app.services.job_service import JobService
 
 class MatchingService:
@@ -16,7 +18,7 @@ class MatchingService:
         self.db = db
         self.semantic_matcher = SemanticMatcher()
         self.external_job_service = ExternalJobService(db)
-        self.notification_threshold = 0.3  # Lower threshold for notifications (30%)
+        self.notification_threshold = 30.0  # Notify on matches scoring 30% or higher
 
     def find_matches_for_cv(self, user_id: int, cv_id: int) -> List[MatchResponse]:
         cv = self.db.query(CV).filter(CV.id == cv_id).first()
@@ -29,6 +31,15 @@ class MatchingService:
         job_service.purge_expired_matches()
 
         jobs = self.external_job_service.fetch_jobs()
+
+        # Restrict candidates to the user's field, auto-detected from their CV
+        # (education/skills/text); a manually set department is the fallback.
+        # Jobs classified as 'other' are never excluded.
+        user_field = cv.field if cv.field and cv.field != "other" else None
+        if not user_field:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            user_field = normalize_department(user.department) if user else None
+        jobs = [job for job in jobs if field_matches(job.field, user_field, strict=True)]
 
         # Calculate match scores for each job
         matches = []
@@ -107,10 +118,23 @@ class MatchingService:
                 print(f"Error matching CV {cv.id} for user {cv.user_id}: {e}")
         return processed
 
+    def _resolve_user_field(self, user_id: int) -> str | None:
+        """Field auto-detected from the user's CV, falling back to a manually set department."""
+        for cv in self.db.query(CV).filter(CV.user_id == user_id).all():
+            if cv.field and cv.field != "other":
+                return cv.field
+        user = self.db.query(User).filter(User.id == user_id).first()
+        return normalize_department(user.department) if user else None
+
     def get_user_matches(self, user_id: int) -> List[MatchResponse]:
+        user_field = self._resolve_user_field(user_id)
         matches = self.db.query(Match).filter(Match.user_id == user_id).all()
         jobs = {job.external_id: job for job in self.external_job_service.fetch_jobs()}
-        return [self._response(match, jobs.get(match.external_job_id)) for match in matches if match.external_job_id in jobs]
+        return [
+            self._response(match, jobs[match.external_job_id])
+            for match in matches
+            if match.external_job_id in jobs and field_matches(jobs[match.external_job_id].field, user_field, strict=True)
+        ]
 
     def get_match(self, match_id: int) -> Match:
         return self.db.query(Match).filter(Match.id == match_id).first()
@@ -127,13 +151,18 @@ class MatchingService:
         return match
 
     def get_top_matches(self, user_id: int, limit: int = 10) -> List[MatchResponse]:
+        user_field = self._resolve_user_field(user_id)
         matches = self.db.query(Match).filter(
             Match.user_id == user_id,
             Match.status == "pending"
-        ).order_by(Match.match_score.desc()).limit(limit).all()
+        ).order_by(Match.match_score.desc()).all()
 
         jobs = {job.external_id: job for job in self.external_job_service.fetch_jobs()}
-        return [self._response(match, jobs.get(match.external_job_id)) for match in matches if match.external_job_id in jobs]
+        filtered = [
+            match for match in matches
+            if match.external_job_id in jobs and field_matches(jobs[match.external_job_id].field, user_field, strict=True)
+        ]
+        return [self._response(match, jobs[match.external_job_id]) for match in filtered[:limit]]
 
     def _response(self, match: Match, job: ExternalJob | None) -> MatchResponse:
         match_dict = MatchResponse.model_validate(match).model_dump()

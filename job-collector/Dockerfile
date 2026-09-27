@@ -11,8 +11,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code (backend package is mounted at /backend by docker-compose;
+# main.py resolves it via ../backend relative to /app)
 COPY . .
 
-# Run the application
-CMD ["python", "main.py"]
+# Run the hourly collection loop as a persistent service
+CMD ["python", "main.py", "--loop"]

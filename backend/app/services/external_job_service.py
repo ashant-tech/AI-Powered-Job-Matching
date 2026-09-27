@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.job import ExternalJob
 from app.services.deadline_parser import extract_deadline
+from app.services.field_classifier import classify_job
 
 DEFAULT_JOB_TTL_DAYS = 30
 
@@ -61,6 +62,7 @@ def upsert_jobs(db: Session, records: list[dict], default_ttl_days: int = DEFAUL
         job.job_type = _clean_str(record.get("job_type")) or None
         job.requirements = _clean_str(record.get("requirements")) or None
         job.skills = record.get("skills") if isinstance(record.get("skills"), str) else None
+        job.field = classify_job(job.title, job.description or "", job.skills or "", job.requirements or "")
         job.source = _clean_str(record.get("source")) or None
         job.apply_url = apply_url
         job.deadline = deadline

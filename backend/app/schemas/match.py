@@ -14,6 +14,7 @@ class JobInfo(BaseModel):
     source: Optional[str] = None
     apply_url: str
     deadline: Optional[datetime] = None
+    field: Optional[str] = None
     
     class Config:
         from_attributes = True

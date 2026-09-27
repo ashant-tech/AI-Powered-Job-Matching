@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (tesseract-ocr powers OCR of scanned CV PDFs)
 RUN apt-get update && apt-get install -y \
     gcc \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies

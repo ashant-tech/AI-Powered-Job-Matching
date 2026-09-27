@@ -8,6 +8,7 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     is_seeker: bool = True
+    department: Optional[str] = None
     telegram_username: Optional[str] = None
 
 class UserCreate(UserBase):
@@ -17,6 +18,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     profile: Optional[str] = None
+    department: Optional[str] = None
     telegram_username: Optional[str] = None
 
 class UserResponse(UserBase):

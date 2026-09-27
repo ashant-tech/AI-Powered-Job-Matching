@@ -1,5 +1,18 @@
 const API_BASE_URL = '/api';
 
+export const FIELD_LABELS: Record<string, string> = {
+  computer_it: 'Computer / IT',
+  engineering: 'Engineering',
+  health: 'Health & Medicine',
+  business_finance: 'Business & Finance',
+  education: 'Education',
+  law: 'Law',
+  agriculture: 'Agriculture',
+  hospitality: 'Hospitality & Tourism',
+  media_design: 'Media & Design',
+  other: 'Other Fields',
+};
+
 export const jobApi = {
   async getJobs(params?: {
     skip?: number;
@@ -7,6 +20,7 @@ export const jobApi = {
     search?: string;
     location?: string;
     job_type?: string;
+    field?: string;
   }) {
     const queryString = new URLSearchParams(params as any).toString();
     const url = `${API_BASE_URL}/jobs/${queryString ? `?${queryString}` : ''}`;
@@ -15,6 +29,20 @@ export const jobApi = {
 
     if (!response.ok) {
       throw new Error('Failed to fetch jobs');
+    }
+
+    return response.json();
+  },
+
+  async getRecommendedJobs(token: string, limit = 50) {
+    const response = await fetch(`${API_BASE_URL}/jobs/recommended?limit=${limit}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch recommended jobs');
     }
 
     return response.json();

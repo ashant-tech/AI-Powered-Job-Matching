@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from app.config.database import engine, Base
+from app.config.database import engine, ensure_schema
 from app.config.settings import settings
 from app.routes import auth, users, cv, jobs, matching, notifications, collaborations
 from app.middleware.error_handler import (
@@ -12,8 +12,18 @@ from app.middleware.error_handler import (
     starlette_http_exception_handler
 )
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables and apply lightweight column migrations
+ensure_schema(engine)
+
+# Classify any jobs collected before the field column existed
+from app.config.database import SessionLocal  # noqa: E402
+from app.services.job_service import backfill_job_fields  # noqa: E402
+
+_db = SessionLocal()
+try:
+    backfill_job_fields(_db)
+finally:
+    _db.close()
 
 app = FastAPI(
     title="AI Job Matching System",
@@ -52,4 +62,27 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """Liveness + DB connectivity + basic stats for monitoring."""
+    from sqlalchemy import text
+    from app.config.database import SessionLocal
+    from app.models.job import ExternalJob
+
+    try:
+        db = SessionLocal()
+        try:
+            db.execute(text("SELECT 1"))
+            active_jobs = db.query(ExternalJob).filter(ExternalJob.is_active == True).count()  # noqa: E712
+        finally:
+            db.close()
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "unreachable",
+            "detail": str(e),
+        }
+
+    return {
+        "status": "healthy",
+        "database": "ok",
+        "active_jobs": active_jobs,
+    }

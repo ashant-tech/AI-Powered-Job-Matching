@@ -15,5 +15,6 @@ class CV(Base):
     skills = Column(Text)  # JSON string
     experience = Column(Text)  # JSON string
     education = Column(Text)  # JSON string
+    field = Column(String)  # auto-detected field of study/work, e.g. "computer_it"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

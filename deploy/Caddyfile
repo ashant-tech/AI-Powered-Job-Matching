@@ -1,0 +1,17 @@
+# Automatic HTTPS via Let's Encrypt when DOMAIN is a real domain.
+# With DOMAIN=localhost (default) Caddy serves a local self-signed cert.
+{$DOMAIN:localhost} {
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	handle /health {
+		reverse_proxy backend:8000
+	}
+	handle /docs {
+		reverse_proxy backend:8000
+	}
+	handle /openapi.json {
+		reverse_proxy backend:8000
+	}
+	reverse_proxy frontend:3000
+}

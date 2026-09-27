@@ -28,6 +28,7 @@ class AuthService:
             full_name=user.full_name,
             phone=user.phone,
             is_seeker=user.is_seeker,
+            department=(user.department or "").strip() or None,
             telegram_username=telegram_username,
             telegram_notifications_enabled=telegram_username is not None
         )

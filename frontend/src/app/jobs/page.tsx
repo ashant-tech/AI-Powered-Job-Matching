@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jobApi, FIELD_LABELS } from '../../services/jobApi';
 
 export default function JobsPage() {
   const router = useRouter();
@@ -10,20 +11,35 @@ export default function JobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('');
+  const [fieldFilter, setFieldFilter] = useState('');
+  const [forYou, setForYou] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchJobs();
+    setToken(localStorage.getItem('token'));
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchJobs();
+  }, [forYou, fieldFilter]);
 
   const fetchJobs = async () => {
     try {
+      if (forYou && token) {
+        const recommended = await jobApi.getRecommendedJobs(token);
+        setJobs(recommended);
+        return;
+      }
+
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (locationFilter) params.append('location', locationFilter);
       if (jobTypeFilter) params.append('job_type', jobTypeFilter);
+      if (fieldFilter) params.append('field', fieldFilter);
 
       const response = await fetch(`/api/jobs/?${params.toString()}`);
-      
+
       if (response.ok) {
         const jobsData = await response.json();
         setJobs(jobsData);
@@ -67,14 +83,29 @@ export default function JobsPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="grid md:grid-cols-4 gap-4">
+          {token && (
+            <div className="mb-4">
+              <button
+                onClick={() => setForYou(!forYou)}
+                className={`px-4 py-2 rounded-lg font-semibold transition ${
+                  forYou
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                }`}
+              >
+                ✨ For You (by your department & skills)
+              </button>
+            </div>
+          )}
+          <div className="grid md:grid-cols-5 gap-4">
             <div>
               <input
                 type="text"
                 placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                disabled={forYou}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
               />
             </div>
             <div>
@@ -83,14 +114,16 @@ export default function JobsPage() {
                 placeholder="Location"
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                disabled={forYou}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
               />
             </div>
             <div>
               <select
                 value={jobTypeFilter}
                 onChange={(e) => setJobTypeFilter(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                disabled={forYou}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
               >
                 <option value="">All Job Types</option>
                 <option value="full-time">Full-time</option>
@@ -100,9 +133,23 @@ export default function JobsPage() {
               </select>
             </div>
             <div>
+              <select
+                value={fieldFilter}
+                onChange={(e) => setFieldFilter(e.target.value)}
+                disabled={forYou}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
+              >
+                <option value="">All Fields</option>
+                {Object.entries(FIELD_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <button
                 onClick={handleSearch}
-                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+                disabled={forYou}
+                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:bg-gray-300"
               >
                 Search
               </button>
@@ -128,6 +175,11 @@ export default function JobsPage() {
                     <h3 className="text-xl font-bold text-gray-900 mb-2">{job.title}</h3>
                     <p className="text-indigo-600 font-semibold mb-2">{job.company}</p>
                     <div className="flex gap-4 text-sm text-gray-600 mb-3">
+                      {job.field && job.field !== 'other' && FIELD_LABELS[job.field] && (
+                        <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold">
+                          {FIELD_LABELS[job.field]}
+                        </span>
+                      )}
                       {job.location && (
                         <span className="flex items-center gap-1">
                           📍 {job.location}

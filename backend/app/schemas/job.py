@@ -13,6 +13,7 @@ class ExternalJob(BaseModel):
     job_type: Optional[str] = None
     requirements: Optional[str] = None
     skills: Optional[str] = None
+    field: Optional[str] = None
     source: Optional[str] = None
     apply_url: str
     deadline: Optional[datetime] = None

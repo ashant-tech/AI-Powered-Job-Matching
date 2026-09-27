@@ -2,13 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.config.database import get_db
+from app.middleware.rate_limit import RateLimiter
 from app.schemas.user import UserCreate, UserResponse
 from app.services.auth_service import AuthService
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
-@router.post("/register", response_model=UserResponse)
+register_limiter = RateLimiter(max_requests=5, window_seconds=3600)
+login_limiter = RateLimiter(max_requests=20, window_seconds=600)
+
+@router.post("/register", response_model=UserResponse, dependencies=[Depends(register_limiter)])
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     auth_service = AuthService(db)
     db_user = auth_service.get_user_by_email(user.email)
@@ -19,7 +23,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         )
     return auth_service.create_user(user)
 
-@router.post("/login")
+@router.post("/login", dependencies=[Depends(login_limiter)])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     auth_service = AuthService(db)
     user = auth_service.authenticate_user(form_data.username, form_data.password)

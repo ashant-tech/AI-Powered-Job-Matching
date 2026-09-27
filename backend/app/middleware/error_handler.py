@@ -14,7 +14,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     logger.error(f"HTTP error: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail, "status": exc.status_code}
+        content={"detail": exc.detail, "status": exc.status_code},
+        headers=getattr(exc, "headers", None)
     )
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -44,5 +45,6 @@ async def starlette_http_exception_handler(request: Request, exc: StarletteHTTPE
     logger.error(f"Starlette HTTP error: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail, "status": exc.status_code}
+        content={"detail": exc.detail, "status": exc.status_code},
+        headers=getattr(exc, "headers", None)
     )

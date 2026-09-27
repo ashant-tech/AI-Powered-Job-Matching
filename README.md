@@ -226,19 +226,54 @@ python database/seed.py
 
 ### Backend Configuration
 
-Edit `backend/app/config/settings.py` to configure:
-- Database connection
-- JWT settings
-- File upload settings
-- AI/ML API keys
-- Email/SMS settings
+Copy `backend/.env` and set at minimum:
+- `DATABASE_URL` — SQLite for local dev, Postgres in Docker
+- `SECRET_KEY` — random, min 32 chars (`openssl rand -hex 32`)
+- `TELEGRAM_BOT_TOKEN` — from @BotFather; required for push notifications
+  (each user must also send `/start` to the bot once)
+- `CORS_ORIGINS` / `FRONTEND_URL` — comma-separated allowed origins; set to
+  the real production domain in prod
 
 ### Frontend Configuration
 
 Edit `frontend/package.json` and environment variables to configure:
-- API endpoints
+- API endpoints (`NEXT_PUBLIC_API_URL`)
 - Feature flags
 - Analytics settings
+
+## 🚢 Production Deployment (Docker Compose)
+
+1. Create the root env file: `cp .env.example .env` and fill in
+   `SECRET_KEY`, `POSTGRES_PASSWORD`, `TELEGRAM_BOT_TOKEN`, `DOMAIN`,
+   `CORS_ORIGINS`, `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`.
+2. Start the stack (backend + frontend + Postgres + hourly job collector):
+   ```bash
+   docker compose up -d --build
+   ```
+   All services have `restart: unless-stopped` and the backend/db have
+   healthchecks, so collection survives reboots.
+3. Enable HTTPS (automatic Let's Encrypt certs via Caddy, requires `DOMAIN`
+   DNS pointing at the host):
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+   ```
+4. Migrate existing SQLite data to Postgres (one-time):
+   ```bash
+   python scripts/migrate_sqlite_to_postgres.py \
+     --target postgresql://jobmatching:$POSTGRES_PASSWORD@localhost:5432/jobmatching
+   ```
+5. Verify: `curl https://<domain>/health` should report
+   `{"status": "healthy", "database": "ok", ...}`.
+6. Backups: `./scripts/backup_db.sh` (Postgres) or `--sqlite` for local dev;
+   14-day retention, cron example in the script header.
+
+Monitoring notes:
+- `GET /health` checks DB connectivity and reports active job count.
+- The collector logs `SOURCE ALERT` when a source returns 0 jobs and
+  `SOURCE DEAD` after 3 consecutive empty cycles (source API may have
+  changed) — watch for these in `docker compose logs job-collector`.
+- Auth endpoints are rate limited per IP: register 5/hour, login 20/10min
+  (HTTP 429 with `Retry-After`).
 
 ## 🧪 Testing
 

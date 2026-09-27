@@ -17,6 +17,7 @@ class ExternalJob(Base):
     job_type = Column(String)
     requirements = Column(Text)
     skills = Column(Text)  # JSON string
+    field = Column(String, index=True)  # classified field, e.g. "computer_it"
     source = Column(String)
     apply_url = Column(String, nullable=False, default="")
     deadline = Column(DateTime)

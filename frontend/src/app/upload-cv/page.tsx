@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FIELD_LABELS } from '../../services/jobApi';
 
 export default function UploadCVPage() {
   const router = useRouter();
@@ -90,7 +91,9 @@ export default function UploadCVPage() {
 
       if (response.ok) {
         const cvData = await response.json();
-        setMessage(cvs.length > 0 ? 'CV replaced successfully!' : 'CV uploaded successfully!');
+        const fieldLabel = cvData.field && cvData.field !== 'other' ? FIELD_LABELS[cvData.field] : null;
+        const base = cvs.length > 0 ? 'CV replaced successfully!' : 'CV uploaded successfully!';
+        setMessage(fieldLabel ? `${base} Detected field: ${fieldLabel} — we'll match you with ${fieldLabel} jobs.` : base);
         setFile(null);
         setTitle('');
         fetchCVs();
@@ -224,6 +227,13 @@ export default function UploadCVPage() {
                       {cv.skills && (
                         <p className="text-sm text-gray-600 mt-1">
                           Skills extracted: {JSON.parse(cv.skills).length}
+                        </p>
+                      )}
+                      {cv.field && FIELD_LABELS[cv.field] && (
+                        <p className="mt-2">
+                          <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold">
+                            Detected field: {FIELD_LABELS[cv.field]}
+                          </span>
                         </p>
                       )}
                     </div>

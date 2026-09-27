@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Backend API
   backend:
@@ -10,48 +8,68 @@ services:
       - ./backend:/app
       - ./backend/uploads:/app/uploads
     environment:
-      - DATABASE_URL=postgresql://jobmatching:jobmatching@db:5432/jobmatching
-      - SECRET_KEY=your-secret-key-change-in-production
+      - DATABASE_URL=postgresql://jobmatching:${POSTGRES_PASSWORD:-jobmatching}@db:5432/jobmatching
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     depends_on:
-      - db
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   # Frontend
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
     depends_on:
       - backend
+    restart: unless-stopped
 
   # Database (PostgreSQL for production)
   db:
     image: postgres:15
     environment:
       - POSTGRES_USER=jobmatching
-      - POSTGRES_PASSWORD=jobmatching
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-jobmatching}
       - POSTGRES_DB=jobmatching
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobmatching -d jobmatching"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Job Collector
+  # Job Collector (hourly loop; shares backend code for models/services)
   job-collector:
     build: ./job-collector
     volumes:
       - ./job-collector:/app
+      - ./backend:/backend:ro
     environment:
-      - DATABASE_URL=postgresql://jobmatching:jobmatching@db:5432/jobmatching
+      - DATABASE_URL=postgresql://jobmatching:${POSTGRES_PASSWORD:-jobmatching}@db:5432/jobmatching
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - PYTHONUNBUFFERED=1
     depends_on:
-      - db
-    command: python -c "from main import JobCollector; JobCollector().run()"
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: python main.py --loop
 
 volumes:
   postgres_data:

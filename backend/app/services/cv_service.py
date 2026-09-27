@@ -12,6 +12,7 @@ from app.cv_processing.docx_parser import parse_docx
 from app.cv_processing.text_cleaner import clean_text
 from app.ai.cv_analyzer import analyze_cv_text
 from app.ai.skill_extractor import extract_skills
+from app.services.field_classifier import classify_cv
 from app.services.matching_service import MatchingService
 
 class CVService:
@@ -49,6 +50,7 @@ class CVService:
             db_cv.skills = None
             db_cv.experience = None
             db_cv.education = None
+            db_cv.field = None
         else:
             db_cv = CV(
                 user_id=user_id,
@@ -95,6 +97,9 @@ class CVService:
         cv.skills = json.dumps(skills)
         cv.experience = json.dumps(analysis.get("experience", []))
         cv.education = json.dumps(analysis.get("education", []))
+
+        # Auto-detect the user's field from the CV itself (education + skills + text)
+        cv.field = classify_cv(cv.parsed_text or "", cv.skills or "", cv.education or "")
         
         self.db.commit()
         self.db.refresh(cv)
@@ -103,7 +108,8 @@ class CVService:
             skills=skills,
             experience=analysis.get("experience", []),
             education=analysis.get("education", []),
-            summary=analysis.get("summary", "")
+            summary=analysis.get("summary", ""),
+            field=cv.field
         )
 
     def _analyze_cv_async(self, cv_id: int):

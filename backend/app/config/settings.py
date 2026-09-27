@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     # File Upload
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     UPLOAD_DIR: str = "uploads/cvs"
+
+    # OCR for scanned/image PDFs. Leave empty to use the tesseract on PATH;
+    # on Windows set this to the installed binary, e.g.
+    # C:\\Program Files\\Tesseract-OCR\\tesseract.exe
+    TESSERACT_CMD: Optional[str] = None
+    OCR_ENABLED: bool = True
+    OCR_DPI: int = 300
     
     # AI/ML
     OPENAI_API_KEY: Optional[str] = None
