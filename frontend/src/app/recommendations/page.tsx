@@ -7,6 +7,7 @@ export default function RecommendationsPage() {
   const router = useRouter();
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedCV, setSelectedCV] = useState<number | null>(null);
   const [cvs, setCvs] = useState<any[]>([]);
 
@@ -55,6 +56,7 @@ export default function RecommendationsPage() {
   };
 
   const fetchMatches = async (cvId: number) => {
+    setError('');
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/matching/cv/${cvId}`, {
@@ -67,9 +69,22 @@ export default function RecommendationsPage() {
       if (response.ok) {
         const matchesData = await response.json();
         setMatches(matchesData);
+      } else {
+        const responseBody = await response.text();
+        let errorMessage = `Finding matches failed (HTTP ${response.status})`;
+        try {
+          const errorData = JSON.parse(responseBody);
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          }
+        } catch {}
+        setMatches([]);
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error fetching matches:', error);
+      setMatches([]);
+      setError(error instanceof Error ? error.message : 'Could not reach the matching service');
     } finally {
       setLoading(false);
     }
@@ -139,6 +154,10 @@ export default function RecommendationsPage() {
         {loading ? (
           <div className="text-center py-8">
             <div className="text-xl">Finding matches...</div>
+          </div>
+        ) : error ? (
+          <div role="alert" className="bg-red-50 text-red-700 rounded-lg p-6 text-center">
+            {error}
           </div>
         ) : matches.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
