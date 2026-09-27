@@ -98,11 +98,18 @@ export default function UploadCVPage() {
         setTitle('');
         fetchCVs();
       } else {
-        const errorData = await response.json();
-        setMessage(errorData.detail || 'Upload failed');
+        const responseBody = await response.text();
+        let errorMessage = `Upload failed (HTTP ${response.status})`;
+        try {
+          const errorData = JSON.parse(responseBody);
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          }
+        } catch {}
+        setMessage(errorMessage);
       }
     } catch (error) {
-      setMessage('Error uploading CV');
+      setMessage(error instanceof Error ? `Error uploading CV: ${error.message}` : 'Error uploading CV');
     } finally {
       setUploading(false);
     }
