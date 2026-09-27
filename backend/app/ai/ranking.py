@@ -22,13 +22,18 @@ def _apply_time_decay(matches: list[Match]) -> list[Match]:
     """
     Apply time decay to matches - newer matches get a slight boost.
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     one_week_ago = now - timedelta(days=7)
     
     for match in matches:
-        if match.created_at > one_week_ago:
+        created_at = match.created_at
+        if created_at is None:
+            continue
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if created_at > one_week_ago:
             # Boost recent matches by 2%
             match.match_score = min(match.match_score * 1.02, 100.0)
     
