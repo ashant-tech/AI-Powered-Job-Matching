@@ -166,7 +166,9 @@ The repository includes a `render.yaml` Blueprint for deploying the frontend, ba
 4. After the services deploy, open the frontend service URL. The frontend proxies `/api` requests to the backend service.
 5. Add `OPENAI_API_KEY` and any email, SMS, or Telegram credentials in the backend service environment if those features are needed.
 
-The free web services can spin down when idle, so the first request after inactivity may take longer. The free filesystem is ephemeral: uploaded CV files should not be treated as permanent storage. For production CV retention, update `CVService` to use object storage such as S3-compatible storage. The job collector is disabled in the Blueprint because a free Render web service is not a reliable scheduled worker; run it from a paid worker/cron service or another scheduler and point its `DATABASE_URL` at the Render database.
+The free web services can spin down when idle, so the first request after inactivity may take longer. The free filesystem is ephemeral: uploaded CV files should not be treated as permanent storage. For production CV retention, update `CVService` to use object storage such as S3-compatible storage.
+
+The Render Blueprint does not run the job collector. To populate production jobs without a paid Render worker, the `Collect Jobs` GitHub Actions workflow runs hourly and can also be started manually. Add a repository Actions secret named `RENDER_DATABASE_URL` with the Render Postgres **external** database URL (GitHub repository **Settings > Secrets and variables > Actions**). Do not put this credential in the repository or share it in chat. Then use **Actions > Collect Jobs > Run workflow** for the initial collection. Check the workflow logs for source and persistence counts; the GitHub-hosted runner must be able to connect to the database's external URL.
 
 Render's free PostgreSQL availability and retention rules can change. If the Blueprint does not offer a free database in your account, create a supported PostgreSQL database separately and set the backend `DATABASE_URL` environment variable to its connection string.
 
