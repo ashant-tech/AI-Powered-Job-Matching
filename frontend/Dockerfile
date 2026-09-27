@@ -11,6 +11,9 @@ RUN npm ci
 # Copy application code
 COPY . .
 
+ARG BACKEND_PROTOCOL
+ARG BACKEND_HOST
+
 # Build the application
 RUN npm run build
 
