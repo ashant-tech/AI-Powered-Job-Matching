@@ -151,3 +151,22 @@ def test_login_rate_limited():
         data={"username": "nobody@example.com", "password": "WrongPassword"}
     )
     assert response.status_code == 429
+
+
+def test_mark_notification_as_read_not_found_returns_404():
+    login_response = client.post(
+        "/api/auth/login",
+        data={
+            "username": "test@example.com",
+            "password": "TestPass123"
+        }
+    )
+    token = login_response.json()["access_token"]
+
+    response = client.put(
+        "/api/notifications/99999/read",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Notification not found"

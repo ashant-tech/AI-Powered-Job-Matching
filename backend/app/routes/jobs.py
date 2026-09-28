@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.config.database import get_db
@@ -18,6 +18,10 @@ async def get_jobs(
     location: Optional[str] = None,
     job_type: Optional[str] = None,
     field: Optional[str] = None,
+    remote_only: Optional[bool] = Query(None, description="Filter for remote jobs only"),
+    salary_min: Optional[float] = Query(None, description="Minimum salary"),
+    salary_max: Optional[float] = Query(None, description="Maximum salary"),
+    deadline_days: Optional[int] = Query(None, description="Jobs with deadline within X days"),
     db: Session = Depends(get_db)
 ):
     if field and field not in FIELDS:
@@ -26,7 +30,18 @@ async def get_jobs(
             detail=f"Unknown field. Valid fields: {', '.join(FIELDS)}"
         )
     job_service = JobService(db)
-    return job_service.get_jobs(skip=skip, limit=limit, search=search, location=location, job_type=job_type, field=field)
+    return job_service.get_jobs(
+        skip=skip,
+        limit=limit,
+        search=search,
+        location=location,
+        job_type=job_type,
+        field=field,
+        remote_only=remote_only,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        deadline_days=deadline_days
+    )
 
 @router.get("/fields", response_model=list[str])
 async def get_fields():

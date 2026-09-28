@@ -25,8 +25,12 @@ async def upload_cv(
 @router.get("/{cv_id}", response_model=CVResponse)
 async def get_cv(cv_id: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     cv_service = CVService(db)
-    
-    cv = cv_service.get_cv(cv_id)
+
+    try:
+        cv = cv_service.get_cv(cv_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
     if not cv or cv.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -48,11 +52,14 @@ async def get_user_cvs(user_id: int, current_user = Depends(get_current_user), d
 @router.post("/{cv_id}/analyze", response_model=CVAnalysis)
 async def analyze_cv(cv_id: int, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     cv_service = CVService(db)
-    
+
     cv = cv_service.get_cv(cv_id)
     if not cv or cv.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="CV not found"
         )
-    return cv_service.analyze_cv(cv_id)
+    try:
+        return cv_service.analyze_cv(cv_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

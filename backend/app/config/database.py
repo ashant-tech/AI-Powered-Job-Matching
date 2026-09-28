@@ -17,7 +17,13 @@ Base = declarative_base()
 _COLUMN_MIGRATIONS = {
     "users": {"department": "VARCHAR"},
     "external_jobs": {"field": "VARCHAR"},
-    "cvs": {"field": "VARCHAR"},
+    "cvs": {
+        "field": "VARCHAR",
+        "experience_level": "VARCHAR(50)",
+        "total_years_experience": "INTEGER",
+        "job_titles": "TEXT",
+        "contact_info": "TEXT"
+    },
 }
 
 

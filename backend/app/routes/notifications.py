@@ -27,8 +27,15 @@ async def mark_notification_as_read(
     db: Session = Depends(get_db)
 ):
     notification_service = NotificationService(db)
-    
-    notification = notification_service.mark_as_read(notification_id)
+
+    try:
+        notification = notification_service.mark_as_read(notification_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
     if not notification or notification.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

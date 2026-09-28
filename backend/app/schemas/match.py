@@ -32,7 +32,9 @@ class MatchResponse(MatchBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     job: Optional[JobInfo] = None
-    
+    skill_gaps: Optional[dict] = None
+    detailed_reasons: Optional[list] = None
+
     class Config:
         from_attributes = True
 

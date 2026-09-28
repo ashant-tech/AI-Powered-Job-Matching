@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -48,7 +48,11 @@ class JobService:
         search: Optional[str] = None,
         location: Optional[str] = None,
         job_type: Optional[str] = None,
-        field: Optional[str] = None
+        field: Optional[str] = None,
+        remote_only: Optional[bool] = None,
+        salary_min: Optional[float] = None,
+        salary_max: Optional[float] = None,
+        deadline_days: Optional[int] = None
     ) -> List[ExternalJob]:
         jobs = ExternalJobService(self.db).fetch_jobs()
 
@@ -61,8 +65,35 @@ class JobService:
             jobs = [job for job in jobs if job.job_type == job_type]
         if field:
             jobs = [job for job in jobs if field_matches(job.field, field)]
+        if remote_only:
+            jobs = [job for job in jobs if self._is_remote(job)]
+        if salary_min is not None:
+            jobs = [job for job in jobs if job.salary_min and job.salary_min >= salary_min]
+        if salary_max is not None:
+            jobs = [job for job in jobs if job.salary_max and job.salary_max <= salary_max]
+        if deadline_days is not None:
+            jobs = [job for job in jobs if self._matches_deadline(job, deadline_days)]
 
         return jobs[skip:skip + limit]
+
+    def _is_remote(self, job: ExternalJob) -> bool:
+        """Check if a job is remote based on job_type, location, or description."""
+        if job.job_type and job.job_type.lower() == 'remote':
+            return True
+        if job.location and 'remote' in job.location.lower():
+            return True
+        if job.description and 'remote' in job.description.lower():
+            return True
+        return False
+
+    def _matches_deadline(self, job: ExternalJob, days: int) -> bool:
+        """Check if job deadline is within specified days from now."""
+        if not job.deadline:
+            return True  # Jobs without deadline match any deadline filter
+        now = datetime.utcnow()
+        deadline_date = job.deadline
+        days_until_deadline = (deadline_date - now).days
+        return days_until_deadline <= days and days_until_deadline >= 0
 
     def get_recommended_jobs(self, user: User, cv: Optional[CV] = None, limit: int = 50) -> List[ExternalJob]:
         """Jobs for a specific user: field auto-detected from their CV (department as

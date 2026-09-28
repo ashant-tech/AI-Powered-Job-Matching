@@ -16,5 +16,9 @@ class CV(Base):
     experience = Column(Text)  # JSON string
     education = Column(Text)  # JSON string
     field = Column(String)  # auto-detected field of study/work, e.g. "computer_it"
+    experience_level = Column(String)  # e.g., "Entry Level", "Junior", "Mid-Level", "Senior"
+    total_years_experience = Column(Integer)  # total years of work experience
+    job_titles = Column(Text)  # JSON string of job titles
+    contact_info = Column(Text)  # JSON string of contact information
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

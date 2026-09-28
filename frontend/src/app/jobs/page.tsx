@@ -12,8 +12,13 @@ export default function JobsPage() {
   const [locationFilter, setLocationFilter] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('');
   const [fieldFilter, setFieldFilter] = useState('');
+  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
+  const [deadlineDays, setDeadlineDays] = useState('');
   const [forYou, setForYou] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
     setToken(localStorage.getItem('token'));
@@ -22,7 +27,7 @@ export default function JobsPage() {
   useEffect(() => {
     setLoading(true);
     fetchJobs();
-  }, [forYou, fieldFilter]);
+  }, [forYou, fieldFilter, remoteOnly, salaryMin, salaryMax, deadlineDays]);
 
   const fetchJobs = async () => {
     try {
@@ -37,6 +42,10 @@ export default function JobsPage() {
       if (locationFilter) params.append('location', locationFilter);
       if (jobTypeFilter) params.append('job_type', jobTypeFilter);
       if (fieldFilter) params.append('field', fieldFilter);
+      if (remoteOnly) params.append('remote_only', 'true');
+      if (salaryMin) params.append('salary_min', salaryMin);
+      if (salaryMax) params.append('salary_max', salaryMax);
+      if (deadlineDays) params.append('deadline_days', deadlineDays);
 
       const response = await fetch(`/api/jobs/?${params.toString()}`);
 
@@ -56,12 +65,39 @@ export default function JobsPage() {
     fetchJobs();
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setLocationFilter('');
+    setJobTypeFilter('');
+    setFieldFilter('');
+    setRemoteOnly(false);
+    setSalaryMin('');
+    setSalaryMax('');
+    setDeadlineDays('');
+    setForYou(false);
+    setLoading(true);
+    fetchJobs();
+  };
+
   const getDeadlineDisplay = (deadline: string) => {
     const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (days <= 0) return { text: 'Closed', urgent: true };
     if (days === 1) return { text: 'Apply by tomorrow', urgent: true };
     if (days <= 7) return { text: `Apply by ${new Date(deadline).toLocaleDateString()} (${days} days left)`, urgent: true };
     return { text: `Apply by ${new Date(deadline).toLocaleDateString()}`, urgent: false };
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (searchTerm) count++;
+    if (locationFilter) count++;
+    if (jobTypeFilter) count++;
+    if (fieldFilter) count++;
+    if (remoteOnly) count++;
+    if (salaryMin) count++;
+    if (salaryMax) count++;
+    if (deadlineDays) count++;
+    return count;
   };
 
   return (
@@ -97,7 +133,9 @@ export default function JobsPage() {
               </button>
             </div>
           )}
-          <div className="grid md:grid-cols-5 gap-4">
+
+          {/* Basic Filters */}
+          <div className="grid md:grid-cols-5 gap-4 mb-4">
             <div>
               <input
                 type="text"
@@ -145,17 +183,158 @@ export default function JobsPage() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="flex gap-2">
               <button
                 onClick={handleSearch}
                 disabled={forYou}
-                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:bg-gray-300"
+                className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:bg-gray-300"
               >
                 Search
               </button>
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                disabled={forYou}
+                className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:bg-gray-100"
+              >
+                {showAdvancedFilters ? '▼' : '▶'}
+              </button>
             </div>
           </div>
+
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="border-t pt-4 mt-4">
+              <div className="grid md:grid-cols-4 gap-4">
+                {/* Remote Toggle */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="remote-only"
+                    checked={remoteOnly}
+                    onChange={(e) => setRemoteOnly(e.target.checked)}
+                    disabled={forYou}
+                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 disabled:bg-gray-100"
+                  />
+                  <label htmlFor="remote-only" className="text-sm font-medium text-gray-700 disabled:text-gray-400">
+                    Remote Only
+                  </label>
+                </div>
+
+                {/* Salary Range */}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      placeholder="Min Salary"
+                      value={salaryMin}
+                      onChange={(e) => setSalaryMin(e.target.value)}
+                      disabled={forYou}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-sm"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      placeholder="Max Salary"
+                      value={salaryMax}
+                      onChange={(e) => setSalaryMax(e.target.value)}
+                      disabled={forYou}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Deadline Filter */}
+                <div>
+                  <select
+                    value={deadlineDays}
+                    onChange={(e) => setDeadlineDays(e.target.value)}
+                    disabled={forYou}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-sm"
+                  >
+                    <option value="">Any Deadline</option>
+                    <option value="1">Closing within 1 day</option>
+                    <option value="3">Closing within 3 days</option>
+                    <option value="7">Closing within 1 week</option>
+                    <option value="14">Closing within 2 weeks</option>
+                    <option value="30">Closing within 1 month</option>
+                  </select>
+                </div>
+
+                {/* Clear Filters */}
+                <button
+                  onClick={clearFilters}
+                  disabled={forYou || getActiveFiltersCount() === 0}
+                  className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition disabled:bg-gray-100 disabled:text-gray-400 text-sm font-semibold"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+
+              {/* Active Filters Display */}
+              {getActiveFiltersCount() > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Search: {searchTerm}
+                      <button onClick={() => setSearchTerm('')} className="hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                  {locationFilter && (
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Location: {locationFilter}
+                      <button onClick={() => setLocationFilter('')} className="hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                  {jobTypeFilter && (
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Type: {jobTypeFilter}
+                      <button onClick={() => setJobTypeFilter('')} className="hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                  {fieldFilter && FIELD_LABELS[fieldFilter] && (
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Field: {FIELD_LABELS[fieldFilter]}
+                      <button onClick={() => setFieldFilter('')} className="hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                  {remoteOnly && (
+                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Remote Only
+                      <button onClick={() => setRemoteOnly(false)} className="hover:text-green-600">×</button>
+                    </span>
+                  )}
+                  {salaryMin && (
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Min: ${salaryMin}
+                      <button onClick={() => setSalaryMin('')} className="hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                  {salaryMax && (
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Max: ${salaryMax}
+                      <button onClick={() => setSalaryMax('')} className="hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                  {deadlineDays && (
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                      Deadline: ≤{deadlineDays} days
+                      <button onClick={() => setDeadlineDays('')} className="hover:text-indigo-600">×</button>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
+        {/* Results Info */}
+        {!loading && (
+          <div className="mb-4 text-sm text-gray-600">
+            {jobs.length} job{jobs.length !== 1 ? 's' : ''} found
+            {getActiveFiltersCount() > 0 && ` with ${getActiveFiltersCount()} active filter${getActiveFiltersCount() !== 1 ? 's' : ''}`}
+          </div>
+        )}
 
         {/* Jobs List */}
         {loading ? (
@@ -164,7 +343,15 @@ export default function JobsPage() {
           </div>
         ) : jobs.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <div className="text-gray-600">No jobs found matching your criteria</div>
+            <div className="text-gray-600 mb-4">No jobs found matching your criteria</div>
+            {getActiveFiltersCount() > 0 && (
+              <button
+                onClick={clearFilters}
+                className="text-indigo-600 hover:underline"
+              >
+                Clear filters and try again
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

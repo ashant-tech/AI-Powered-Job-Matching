@@ -46,7 +46,9 @@ class MatchingService:
         new_matches = []
         high_quality_matches = []
         for job in jobs:
-            match_score = self.semantic_matcher.calculate_match_score(cv, job)
+            # Use enhanced matching with details
+            match_details = self.semantic_matcher.calculate_match_with_details(cv, job)
+            match_score = match_details["match_score"]
 
             existing_match = self.db.query(Match).filter(
                 Match.user_id == user_id,
@@ -63,7 +65,11 @@ class MatchingService:
                 cv_id=cv_id,
                 external_job_id=job.external_id,
                 match_score=match_score,
-                match_reasons=json.dumps({"score_breakdown": match_score})
+                match_reasons=json.dumps({
+                    "score_breakdown": match_score,
+                    "detailed_reasons": match_details["match_reasons"],
+                    "component_scores": match_details["component_scores"]
+                })
             )
 
             self.db.add(match)
@@ -101,8 +107,24 @@ class MatchingService:
             job = next((job for job in jobs if job.external_id == match.external_job_id), None)
             job_info = JobInfo.model_validate(job) if job else None
 
+            # Calculate skill gaps for this match
+            skill_gaps = None
+            if job:
+                skill_gaps = self.semantic_matcher._calculate_skill_gaps(cv, job)
+
+            # Extract detailed reasons from match_reasons
+            detailed_reasons = None
+            if match.match_reasons:
+                try:
+                    reasons_data = json.loads(match.match_reasons)
+                    detailed_reasons = reasons_data.get("detailed_reasons", [])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
             match_dict = MatchResponse.model_validate(match).model_dump()
             match_dict['job'] = job_info.model_dump() if job_info else None
+            match_dict['skill_gaps'] = skill_gaps
+            match_dict['detailed_reasons'] = detailed_reasons
             match_responses.append(MatchResponse(**match_dict))
 
         return match_responses
@@ -167,4 +189,22 @@ class MatchingService:
     def _response(self, match: Match, job: ExternalJob | None) -> MatchResponse:
         match_dict = MatchResponse.model_validate(match).model_dump()
         match_dict["job"] = JobInfo.model_validate(job).model_dump() if job else None
+
+        # Extract detailed reasons from match_reasons
+        detailed_reasons = None
+        if match.match_reasons:
+            try:
+                reasons_data = json.loads(match.match_reasons)
+                detailed_reasons = reasons_data.get("detailed_reasons", [])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        match_dict["detailed_reasons"] = detailed_reasons
+
+        # Calculate skill gaps if job is available
+        if job:
+            cv = self.db.query(CV).filter(CV.id == match.cv_id).first()
+            if cv:
+                skill_gaps = self.semantic_matcher._calculate_skill_gaps(cv, job)
+                match_dict["skill_gaps"] = skill_gaps
+
         return MatchResponse(**match_dict)

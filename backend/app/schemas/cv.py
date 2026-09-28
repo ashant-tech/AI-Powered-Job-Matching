@@ -18,9 +18,13 @@ class CVResponse(CVBase):
     experience: Optional[str] = None
     education: Optional[str] = None
     field: Optional[str] = None
+    experience_level: Optional[str] = None
+    total_years_experience: Optional[int] = None
+    job_titles: Optional[str] = None
+    contact_info: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -30,3 +34,7 @@ class CVAnalysis(BaseModel):
     education: list
     summary: str
     field: Optional[str] = None
+    experience_level: Optional[str] = None
+    total_years_experience: Optional[int] = None
+    job_titles: Optional[list] = None
+    contact_info: Optional[dict] = None

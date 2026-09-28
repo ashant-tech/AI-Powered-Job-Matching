@@ -51,6 +51,10 @@ class CVService:
             db_cv.experience = None
             db_cv.education = None
             db_cv.field = None
+            db_cv.experience_level = None
+            db_cv.total_years_experience = None
+            db_cv.job_titles = None
+            db_cv.contact_info = None
         else:
             db_cv = CV(
                 user_id=user_id,
@@ -97,6 +101,10 @@ class CVService:
         cv.skills = json.dumps(skills)
         cv.experience = json.dumps(analysis.get("experience", []))
         cv.education = json.dumps(analysis.get("education", []))
+        cv.experience_level = analysis.get("experience_level")
+        cv.total_years_experience = analysis.get("total_years_experience")
+        cv.job_titles = json.dumps(analysis.get("job_titles", []))
+        cv.contact_info = json.dumps(analysis.get("contact_info", {}))
 
         # Auto-detect the user's field from the CV itself (education + skills + text)
         cv.field = classify_cv(cv.parsed_text or "", cv.skills or "", cv.education or "")
@@ -109,7 +117,11 @@ class CVService:
             experience=analysis.get("experience", []),
             education=analysis.get("education", []),
             summary=analysis.get("summary", ""),
-            field=cv.field
+            field=cv.field,
+            experience_level=analysis.get("experience_level"),
+            total_years_experience=analysis.get("total_years_experience"),
+            job_titles=analysis.get("job_titles"),
+            contact_info=analysis.get("contact_info")
         )
 
     def _analyze_cv_async(self, cv_id: int):

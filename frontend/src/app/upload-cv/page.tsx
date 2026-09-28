@@ -97,6 +97,11 @@ export default function UploadCVPage() {
         setFile(null);
         setTitle('');
         fetchCVs();
+
+        // Automatically redirect to recommendations page after successful upload
+        setTimeout(() => {
+          router.push('/recommendations');
+        }, 1500);
       } else {
         const responseBody = await response.text();
         let errorMessage = `Upload failed (HTTP ${response.status})`;
@@ -226,27 +231,72 @@ export default function UploadCVPage() {
               {cvs.map((cv) => (
                 <div key={cv.id} className="border rounded-lg p-4">
                   <div className="flex justify-between items-start">
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-semibold">{cv.title}</h4>
                       <p className="text-sm text-gray-600">
                         Uploaded: {new Date(cv.created_at).toLocaleDateString()}
                       </p>
-                      {cv.skills && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Skills extracted: {JSON.parse(cv.skills).length}
-                        </p>
-                      )}
-                      {cv.field && FIELD_LABELS[cv.field] && (
-                        <p className="mt-2">
-                          <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold">
-                            Detected field: {FIELD_LABELS[cv.field]}
-                          </span>
-                        </p>
-                      )}
+
+                      {/* Enhanced CV Analysis Display */}
+                      <div className="mt-3 space-y-2">
+                        {cv.experience_level && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Experience Level:</span>
+                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold">
+                              {cv.experience_level}
+                            </span>
+                          </div>
+                        )}
+
+                        {cv.total_years_experience !== undefined && cv.total_years_experience !== null && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Total Experience:</span>
+                            <span className="text-sm font-medium text-gray-800">
+                              {cv.total_years_experience}+ years
+                            </span>
+                          </div>
+                        )}
+
+                        {cv.skills && (
+                          <div>
+                            <span className="text-sm text-gray-600">Skills extracted: </span>
+                            <span className="text-sm font-medium text-gray-800">
+                              {JSON.parse(cv.skills).length}
+                            </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {JSON.parse(cv.skills).slice(0, 5).map((skill: string, index: number) => (
+                                <span key={index} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs">
+                                  {skill}
+                                </span>
+                              ))}
+                              {JSON.parse(cv.skills).length > 5 && (
+                                <span className="text-xs text-gray-500">+{JSON.parse(cv.skills).length - 5} more</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {cv.job_titles && (
+                          <div>
+                            <span className="text-sm text-gray-600">Job Titles: </span>
+                            <span className="text-sm font-medium text-gray-800">
+                              {JSON.parse(cv.job_titles).join(', ') || 'Not specified'}
+                            </span>
+                          </div>
+                        )}
+
+                        {cv.field && FIELD_LABELS[cv.field] && (
+                          <div className="mt-2">
+                            <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold">
+                              Detected field: {FIELD_LABELS[cv.field]}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleAnalyze(cv.id)}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition"
+                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition whitespace-nowrap"
                     >
                       Reanalyze
                     </button>
