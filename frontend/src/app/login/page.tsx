@@ -31,14 +31,27 @@ export default function LoginPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Invalid credentials');
+        let message = 'Invalid email or password';
+
+        try {
+          const errorData = await response.json();
+          if (typeof errorData.detail === 'string') {
+            message = errorData.detail;
+          }
+        } catch {}
+
+        throw new Error(message);
       }
 
       const data = await response.json();
+      if (typeof data.access_token !== 'string') {
+        throw new Error('Login response did not include an access token');
+      }
+
       localStorage.setItem('token', data.access_token);
       router.push('/dashboard');
     } catch (err) {
-      setError('Invalid email or password');
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
