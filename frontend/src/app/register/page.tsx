@@ -51,8 +51,15 @@ export default function RegisterPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Registration failed');
+        const responseBody = await response.text();
+        let message = 'Registration failed';
+
+        try {
+          const errorData = JSON.parse(responseBody);
+          message = errorData.detail || message;
+        } catch {}
+
+        throw new Error(message);
       }
 
       router.push('/login');
