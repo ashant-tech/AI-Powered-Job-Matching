@@ -32,6 +32,8 @@ async function proxy(request: Request, { params }: RouteContext) {
     const backendResponse = await fetch(backendUrl, requestOptions);
     const responseHeaders = new Headers(backendResponse.headers);
     responseHeaders.delete('connection');
+    responseHeaders.delete('content-encoding');
+    responseHeaders.delete('content-length');
     responseHeaders.delete('transfer-encoding');
 
     return new Response(backendResponse.body, {

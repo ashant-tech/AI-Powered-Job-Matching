@@ -30,20 +30,28 @@ export default function LoginPage() {
         }),
       });
 
+      const responseBody = await response.text();
+      let data: Record<string, unknown>;
+      try {
+        const parsedBody: unknown = JSON.parse(responseBody);
+        data = typeof parsedBody === 'object' && parsedBody !== null
+          ? parsedBody as Record<string, unknown>
+          : {};
+      } catch {
+        throw new Error(response.ok
+          ? 'Login service returned an invalid response. Please try again later.'
+          : 'Login service is temporarily unavailable. Please try again later.');
+      }
+
       if (!response.ok) {
-        let message = 'Invalid email or password';
-
-        try {
-          const errorData = await response.json();
-          if (typeof errorData.detail === 'string') {
-            message = errorData.detail;
-          }
-        } catch {}
-
+        const message = response.status === 401
+          ? 'Invalid email or password'
+          : typeof data.detail === 'string'
+            ? data.detail
+            : 'Login service is temporarily unavailable. Please try again later.';
         throw new Error(message);
       }
 
-      const data = await response.json();
       if (typeof data.access_token !== 'string') {
         throw new Error('Login response did not include an access token');
       }
