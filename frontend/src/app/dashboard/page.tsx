@@ -13,6 +13,7 @@ export default function DashboardPage() {
     viewedJobs: 0,
     unreadNotifications: 0,
   });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,12 +25,13 @@ export default function DashboardPage() {
 
     fetchUserData();
     fetchStats();
+    fetchRecentActivity();
   }, [router]);
 
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/auth/me', {
+      const response = await fetch('http://localhost:8000/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -47,17 +49,53 @@ export default function DashboardPage() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Mock stats for now - replace with actual API calls
-      setStats({
-        totalMatches: 12,
-        pendingApplications: 5,
-        viewedJobs: 8,
-        unreadNotifications: 3,
+      const response = await fetch('http://localhost:8000/api/matching/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
+
+      if (response.ok) {
+        const statsData = await response.json();
+        setStats(statsData);
+      } else {
+        console.error('Failed to fetch stats');
+        // Set default values if API call fails
+        setStats({
+          totalMatches: 0,
+          pendingApplications: 0,
+          viewedJobs: 0,
+          unreadNotifications: 0,
+        });
+      }
     } catch (error) {
       console.error('Error fetching stats:', error);
+      setStats({
+        totalMatches: 0,
+        pendingApplications: 0,
+        viewedJobs: 0,
+        unreadNotifications: 0,
+      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/matching/recent-activity', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const activityData = await response.json();
+        setRecentActivity(activityData);
+      }
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
     }
   };
 
@@ -149,27 +187,30 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
           <div className="space-y-4">
-            <div className="flex items-center gap-4 p-3 bg-gray-50 rounded">
-              <div className="text-green-500">✓</div>
-              <div>
-                <div className="font-medium">New job matches found</div>
-                <div className="text-sm text-gray-600">2 hours ago</div>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded">
+                  {activity.type === 'notification' ? (
+                    <div className="text-orange-500">📝</div>
+                  ) : (
+                    <div className="text-green-500">✓</div>
+                  )}
+                  <div>
+                    <div className="font-medium">{activity.title}</div>
+                    <div className="text-sm text-gray-600">
+                      {activity.message || activity.company}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(activity.time).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-500 text-center py-4">
+                No recent activity
               </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 bg-gray-50 rounded">
-              <div className="text-blue-500">👁</div>
-              <div>
-                <div className="font-medium">Your CV was viewed by Tech Corp</div>
-                <div className="text-sm text-gray-600">1 day ago</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 bg-gray-50 rounded">
-              <div className="text-orange-500">📝</div>
-              <div>
-                <div className="font-medium">Application submitted for Senior Developer</div>
-                <div className="text-sm text-gray-600">3 days ago</div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </main>

@@ -64,7 +64,9 @@ class JobService:
         if job_type:
             jobs = [job for job in jobs if job.job_type == job_type]
         if field:
-            jobs = [job for job in jobs if field_matches(job.field, field)]
+            # When user explicitly selects a field, use strict filtering
+            # Only show jobs in that exact field, exclude 'other' jobs
+            jobs = [job for job in jobs if job.field == field]
         if remote_only:
             jobs = [job for job in jobs if self._is_remote(job)]
         if salary_min is not None:

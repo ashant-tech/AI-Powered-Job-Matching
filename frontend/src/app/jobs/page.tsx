@@ -47,11 +47,18 @@ export default function JobsPage() {
       if (salaryMax) params.append('salary_max', salaryMax);
       if (deadlineDays) params.append('deadline_days', deadlineDays);
 
-      const response = await fetch(`/api/jobs/?${params.toString()}`);
+      console.log('Fetching jobs with params:', params.toString());
+
+      const response = await fetch(`http://localhost:8000/api/jobs/?${params.toString()}`);
+
+      console.log('Response status:', response.status);
 
       if (response.ok) {
         const jobsData = await response.json();
+        console.log('Jobs received:', jobsData.length);
         setJobs(jobsData);
+      } else {
+        console.error('Failed to fetch jobs:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -173,7 +180,10 @@ export default function JobsPage() {
             <div>
               <select
                 value={fieldFilter}
-                onChange={(e) => setFieldFilter(e.target.value)}
+                onChange={(e) => {
+                  console.log('Field filter changed to:', e.target.value);
+                  setFieldFilter(e.target.value);
+                }}
                 disabled={forYou}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
               >

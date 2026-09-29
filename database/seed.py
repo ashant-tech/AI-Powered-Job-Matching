@@ -34,7 +34,8 @@ def seed_database():
                 full_name="John Doe",
                 phone="+1234567890",
                 is_seeker=True,
-                is_active=True
+                is_active=True,
+                department="Computer Science"
             ),
             User(
                 email="jane@example.com",
@@ -43,7 +44,8 @@ def seed_database():
                 full_name="Jane Smith",
                 phone="+0987654321",
                 is_seeker=True,
-                is_active=True
+                is_active=True,
+                department="Software Engineering"
             ),
             User(
                 email="company@example.com",
@@ -52,12 +54,16 @@ def seed_database():
                 full_name="Tech Company",
                 phone="+1555555555",
                 is_seeker=False,  # Employer
-                is_active=True
+                is_active=True,
+                department="Business"
             )
         ]
         
         for user in users:
-            db.add(user)
+            # Check if user already exists
+            existing = db.query(User).filter(User.email == user.email).first()
+            if not existing:
+                db.add(user)
         db.commit()
         
         print(f"Created {len(users)} users")
@@ -74,11 +80,14 @@ def seed_database():
             ("Leadership", "soft", "Team leadership and management"),
             ("Problem Solving", "soft", "Analytical problem-solving skills"),
         ]
-        
+
         for name, category, description in skills_data:
-            skill = Skill(name=name, category=category, description=description)
-            db.add(skill)
-        
+            # Check if skill already exists
+            existing = db.query(Skill).filter(Skill.name == name).first()
+            if not existing:
+                skill = Skill(name=name, category=category, description=description)
+                db.add(skill)
+
         db.commit()
         print(f"Created {len(skills_data)} skills")
         
@@ -167,26 +176,38 @@ def seed_database():
                 is_active=True
             )
         ]
-        
+
         for job in jobs:
-            db.add(job)
+            # Check if job already exists
+            existing = db.query(ExternalJob).filter(ExternalJob.external_id == job.external_id).first()
+            if not existing:
+                # Auto-classify the job field
+                from app.services.field_classifier import classify_job
+                job.field = classify_job(job.title, job.description or "", job.skills or "", job.requirements or "")
+                db.add(job)
         db.commit()
-        
+
         print(f"Created {len(jobs)} jobs")
-        
+
         # Create sample notifications
         print("Creating sample notifications...")
-        if users:
-            notification = Notification(
-                user_id=users[0].id,
-                type="match",
-                title="Welcome to AI Job Matching!",
-                message="Your account has been created successfully. Upload your CV to start finding job matches.",
-                is_read=False
-            )
-            db.add(notification)
-            db.commit()
-            print("Created 1 notification")
+        try:
+            # Fetch users from database to get their IDs
+            db_users = db.query(User).all()
+            if db_users:
+                notification = Notification(
+                    user_id=db_users[0].id,
+                    type="match",
+                    title="Welcome to AI Job Matching!",
+                    message="Your account has been created successfully. Upload your CV to start finding job matches.",
+                    is_read=False
+                )
+                db.add(notification)
+                db.commit()
+                print("Created 1 notification")
+        except Exception as e:
+            print(f"Skipped notification creation: {e}")
+            db.rollback()
         
         print("Database seeding completed successfully!")
         
@@ -197,10 +218,16 @@ def seed_database():
         db.close()
 
 if __name__ == "__main__":
-    # Create tables
+    # Create tables and apply migrations
     print("Creating database tables...")
     Base.metadata.create_all(bind=engine)
     print("Database tables created.")
-    
+
+    # Apply lightweight column migrations
+    print("Applying column migrations...")
+    from app.config.database import ensure_schema
+    ensure_schema(engine)
+    print("Column migrations applied.")
+
     # Seed data
     seed_database()

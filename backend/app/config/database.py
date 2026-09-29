@@ -15,7 +15,9 @@ Base = declarative_base()
 # Lightweight column migrations: create_all never alters existing tables,
 # so new columns are added here (runs on backend startup and in the collector).
 _COLUMN_MIGRATIONS = {
-    "users": {"department": "VARCHAR"},
+    "users": {
+        "department": "VARCHAR"
+    },
     "external_jobs": {"field": "VARCHAR"},
     "cvs": {
         "field": "VARCHAR",
@@ -23,6 +25,9 @@ _COLUMN_MIGRATIONS = {
         "total_years_experience": "INTEGER",
         "job_titles": "TEXT",
         "contact_info": "TEXT"
+    },
+    "notifications": {
+        "external_job_ids": "TEXT"
     },
 }
 

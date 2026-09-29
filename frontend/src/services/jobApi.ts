@@ -21,6 +21,10 @@ export const jobApi = {
     location?: string;
     job_type?: string;
     field?: string;
+    remote_only?: boolean;
+    salary_min?: number;
+    salary_max?: number;
+    deadline_days?: number;
   }) {
     const queryString = new URLSearchParams(params as any).toString();
     const url = `${API_BASE_URL}/jobs/${queryString ? `?${queryString}` : ''}`;
