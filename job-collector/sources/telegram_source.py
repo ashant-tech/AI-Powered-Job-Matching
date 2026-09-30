@@ -44,6 +44,8 @@ CHANNELS = [
     {"name": "Enjera Jobs", "username": "enjerajobs"},
     {"name": "Shega Jobs", "username": "shegajobs"},
     {"name": "Ethio Job Vacancy", "username": "ethio_job_vacancy1"},
+    {"name": "EffoyJobs", "username": "effoyjobs"},
+    {"name": "HarmeeJobs", "username": "harmeejobs"},
 ]
 
 # A message must mention at least one of these to count as a vacancy post
