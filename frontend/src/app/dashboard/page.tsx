@@ -30,21 +30,25 @@ export default function DashboardPage() {
     const statsInterval = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchStats();
+        fetchRecentActivity();
       }
     }, 5000);
-    const refreshStatsOnFocus = () => fetchStats();
-    window.addEventListener('focus', refreshStatsOnFocus);
+    const refreshDashboardOnFocus = () => {
+      fetchStats();
+      fetchRecentActivity();
+    };
+    window.addEventListener('focus', refreshDashboardOnFocus);
 
     return () => {
       window.clearInterval(statsInterval);
-      window.removeEventListener('focus', refreshStatsOnFocus);
+      window.removeEventListener('focus', refreshDashboardOnFocus);
     };
   }, [router]);
 
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/auth/me', {
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -62,7 +66,7 @@ export default function DashboardPage() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/matching/stats', {
+      const response = await fetch('/api/matching/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -84,7 +88,7 @@ export default function DashboardPage() {
   const fetchRecentActivity = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/matching/recent-activity', {
+      const response = await fetch('/api/matching/recent-activity', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

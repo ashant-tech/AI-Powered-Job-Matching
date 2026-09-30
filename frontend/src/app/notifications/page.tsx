@@ -16,6 +16,19 @@ export default function NotificationsPage() {
     }
 
     fetchNotifications();
+
+    const notificationsInterval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications();
+      }
+    }, 5000);
+    const refreshNotificationsOnFocus = () => fetchNotifications();
+    window.addEventListener('focus', refreshNotificationsOnFocus);
+
+    return () => {
+      window.clearInterval(notificationsInterval);
+      window.removeEventListener('focus', refreshNotificationsOnFocus);
+    };
   }, [router]);
 
   const fetchNotifications = async () => {
