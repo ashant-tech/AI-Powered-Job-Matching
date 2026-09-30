@@ -26,6 +26,19 @@ export default function DashboardPage() {
     fetchUserData();
     fetchStats();
     fetchRecentActivity();
+
+    const statsInterval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchStats();
+      }
+    }, 5000);
+    const refreshStatsOnFocus = () => fetchStats();
+    window.addEventListener('focus', refreshStatsOnFocus);
+
+    return () => {
+      window.clearInterval(statsInterval);
+      window.removeEventListener('focus', refreshStatsOnFocus);
+    };
   }, [router]);
 
   const fetchUserData = async () => {
@@ -60,22 +73,9 @@ export default function DashboardPage() {
         setStats(statsData);
       } else {
         console.error('Failed to fetch stats');
-        // Set default values if API call fails
-        setStats({
-          totalMatches: 0,
-          pendingApplications: 0,
-          viewedJobs: 0,
-          unreadNotifications: 0,
-        });
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
-      setStats({
-        totalMatches: 0,
-        pendingApplications: 0,
-        viewedJobs: 0,
-        unreadNotifications: 0,
-      });
     } finally {
       setLoading(false);
     }
