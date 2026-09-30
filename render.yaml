@@ -2,14 +2,14 @@ databases:
   - name: job-matching-db
     databaseName: jobmatching
     user: jobmatching
-    plan: 0.1c-256mb
+    plan: free
 
 services:
   - type: web
     name: job-matching-backend
     runtime: docker
     rootDir: backend
-    plan: 0.5c-512mb
+    plan: free
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -27,7 +27,7 @@ services:
     name: job-matching-frontend
     runtime: docker
     rootDir: frontend
-    plan: 0.5c-512mb
+    plan: free
     envVars:
       - key: BACKEND_PROTOCOL
         value: https
@@ -37,18 +37,3 @@ services:
           name: job-matching-backend
           envVarKey: RENDER_EXTERNAL_HOSTNAME
 
-  - type: cron
-    name: job-matching-collector
-    runtime: docker
-    plan: 0.5c-512mb
-    dockerfilePath: ./job-collector/Dockerfile.render
-    dockerContext: .
-    schedule: '0 * * * *'
-    dockerCommand: python main.py
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: job-matching-db
-          property: connectionString
-      - key: PYTHONUNBUFFERED
-        value: '1'
