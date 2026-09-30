@@ -2,14 +2,14 @@ databases:
   - name: job-matching-db
     databaseName: jobmatching
     user: jobmatching
-    plan: free
+    plan: 0.1c-256mb
 
 services:
   - type: web
     name: job-matching-backend
     runtime: docker
     rootDir: backend
-    plan: free
+    plan: 0.5c-512mb
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -27,7 +27,7 @@ services:
     name: job-matching-frontend
     runtime: docker
     rootDir: frontend
-    plan: free
+    plan: 0.5c-512mb
     envVars:
       - key: BACKEND_PROTOCOL
         value: https
