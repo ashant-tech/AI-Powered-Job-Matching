@@ -2,6 +2,8 @@
 Duplicate Detector - Detect and remove duplicate job postings
 """
 import hashlib
+import re
+from urllib.parse import urlsplit, urlunsplit
 
 from difflib import SequenceMatcher
 from typing import List
@@ -17,10 +19,10 @@ class DuplicateDetector:
         seen_signatures = set()
         
         for job in jobs:
-            signature = self._generate_job_signature(job)
+            signatures = self._generate_job_signatures(job)
             
-            if signature not in seen_signatures:
-                seen_signatures.add(signature)
+            if seen_signatures.isdisjoint(signatures):
+                seen_signatures.update(signatures)
                 unique_jobs.append(job)
             else:
                 print(f"Duplicate job found: {job['title']} at {job['company']}")
@@ -29,22 +31,35 @@ class DuplicateDetector:
     
     def _generate_job_signature(self, job: dict) -> str:
         """Generate a unique signature for a job"""
-        # Create a signature based on key fields plus a description slice, so
-        # distinct jobs that share a generic company fallback are not collapsed
-        signature_parts = [
-            job.get('title', '').lower().strip(),
-            job.get('company', '').lower().strip(),
-            job.get('location', '').lower().strip(),
-            job.get('job_type', '').lower().strip(),
-            job.get('description', '')[:100].lower().strip(),
-        ]
-        
-        signature_string = '|'.join(signature_parts)
-        
-        # Create hash
-        signature_hash = hashlib.md5(signature_string.encode()).hexdigest()
-        
-        return signature_hash
+        return '|'.join(self._generate_job_signatures(job))
+
+    def _generate_job_signatures(self, job: dict) -> set[str]:
+        source_url = job.get('source_url') or job.get('apply_url') or job.get('url')
+        external_id = job.get('external_id')
+        signatures = set()
+        if external_id:
+            signatures.add(f"external:{external_id.strip().lower()}")
+        if source_url:
+            signatures.add(f"url:{self._normalize_url(source_url)}")
+
+        # Company is omitted because copied listings often use the channel
+        # name on one source and the employer name on another.
+        content = '|'.join([
+            self._normalize_text(job.get('title', '')),
+            self._normalize_text(job.get('location', '')),
+            self._normalize_text(job.get('description', '')),
+        ])
+        signatures.add(f"content:{hashlib.md5(content.encode()).hexdigest()}")
+        return signatures
+
+    @staticmethod
+    def _normalize_text(value: str) -> str:
+        return re.sub(r'\s+', ' ', str(value).lower()).strip()
+
+    @staticmethod
+    def _normalize_url(value: str) -> str:
+        parsed = urlsplit(str(value).strip())
+        return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path.rstrip('/'), '', ''))
     
     def find_similar_jobs(self, jobs: list[dict]) -> List[tuple]:
         """Find jobs that are similar but not exact duplicates"""
