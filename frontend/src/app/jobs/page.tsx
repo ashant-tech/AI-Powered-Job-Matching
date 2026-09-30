@@ -32,12 +32,12 @@ export default function JobsPage() {
   // shows jobs relevant to them; they can switch to "All Fields" to see all.
   const loadDefaultField = async (authToken: string) => {
     try {
-      const meRes = await fetch('http://localhost:8000/api/auth/me', {
+      const meRes = await fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       if (!meRes.ok) return;
       const me = await meRes.json();
-      const cvRes = await fetch(`http://localhost:8000/api/cv/user/${me.id}`, {
+      const cvRes = await fetch(`/api/cv/user/${me.id}`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       if (!cvRes.ok) return;
@@ -76,7 +76,7 @@ export default function JobsPage() {
 
       console.log('Fetching jobs with params:', params.toString());
 
-      const response = await fetch(`http://localhost:8000/api/jobs/?${params.toString()}`);
+      const response = await fetch(`/api/jobs?${params.toString()}`);
 
       console.log('Response status:', response.status);
 
