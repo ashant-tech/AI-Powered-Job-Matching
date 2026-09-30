@@ -32,3 +32,14 @@ class UserResponse(UserBase):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ForgotPasswordResponse(BaseModel):
+    detail: str
+    reset_token: Optional[str] = None  # only populated when EXPOSE_RESET_TOKEN is True (dev)
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str

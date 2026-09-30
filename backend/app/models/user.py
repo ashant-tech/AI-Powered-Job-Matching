@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
 from app.config.database import Base
 
@@ -22,3 +22,14 @@ class User(Base):
     telegram_chat_id = Column(String, nullable=True)  # Telegram chat ID for notifications
     telegram_notifications_enabled = Column(Boolean, default=False)  # Enable/disable Telegram notifications
     telegram_username = Column(String, nullable=True)  # Telegram username (optional)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String, nullable=False, index=True)  # sha256 of the raw token
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -2,11 +2,17 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from app.models.user import User
+import hashlib
+import secrets
+from app.models.user import User, PasswordResetToken
 from app.schemas.user import UserCreate, UserUpdate
 from app.config.settings import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def _hash_token(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 class AuthService:
     def __init__(self, db: Session):
@@ -83,3 +89,54 @@ class AuthService:
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    def create_password_reset_token(self, email: str) -> str | None:
+        """Create a single-use reset token for the user with this email.
+
+        Returns the raw token if the user exists, otherwise None. Existing
+        unused tokens for the user are invalidated so only the newest works.
+        """
+        user = self.get_user_by_email(email)
+        if not user:
+            return None
+
+        self.db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used == False,  # noqa: E712
+        ).update({"used": True})
+
+        raw_token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(
+            minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+        )
+        self.db.add(PasswordResetToken(
+            user_id=user.id,
+            token_hash=_hash_token(raw_token),
+            expires_at=expires_at,
+            used=False,
+        ))
+        self.db.commit()
+        return raw_token
+
+    def reset_password(self, raw_token: str, new_password: str) -> bool:
+        """Consume a valid reset token and set a new password. Returns success."""
+        record = self.db.query(PasswordResetToken).filter(
+            PasswordResetToken.token_hash == _hash_token(raw_token)
+        ).first()
+        if not record or record.used:
+            return False
+
+        expires_at = record.expires_at
+        if expires_at.tzinfo is not None:
+            expires_at = expires_at.replace(tzinfo=None)
+        if expires_at < datetime.utcnow():
+            return False
+
+        user = self.get_user_by_id(record.user_id)
+        if not user:
+            return False
+
+        user.hashed_password = pwd_context.hash(new_password)
+        record.used = True
+        self.db.commit()
+        return True

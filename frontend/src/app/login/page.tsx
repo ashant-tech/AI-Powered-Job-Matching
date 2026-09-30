@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -11,7 +11,15 @@ export default function LoginPage() {
     password: '',
   });
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') === 'success') {
+      setNotice('Your password has been reset. You can now sign in.');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +87,12 @@ export default function LoginPage() {
           </div>
         )}
 
+        {notice && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+            {notice}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -108,6 +122,12 @@ export default function LoginPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="••••••••"
             />
+          </div>
+
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+              Forgot password?
+            </Link>
           </div>
 
           <button

@@ -84,6 +84,49 @@ The AI Job Matching Team
         
         return self.send_email(to_email, subject, body, html_body)
 
+    def send_password_reset_email(
+        self,
+        to_email: str,
+        user_name: str,
+        reset_link: str,
+        expire_minutes: int
+    ) -> bool:
+        """
+        Send a password reset link to the user.
+        """
+        subject = "Reset your password"
+
+        body = f"""
+Hi {user_name},
+
+We received a request to reset your password for the AI Job Matching System.
+
+Use the link below to choose a new password. It expires in {expire_minutes} minutes:
+
+{reset_link}
+
+If you didn't request this, you can safely ignore this email.
+
+Best regards,
+The AI Job Matching Team
+        """
+
+        html_body = f"""
+<html>
+<body>
+    <h2>Reset your password</h2>
+    <p>Hi {user_name},</p>
+    <p>We received a request to reset your password. Click the button below to choose a new one. This link expires in {expire_minutes} minutes.</p>
+    <p><a href="{reset_link}" style="background:#4f46e5;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Reset Password</a></p>
+    <p>Or copy this link into your browser:<br>{reset_link}</p>
+    <p>If you didn't request this, you can safely ignore this email.</p>
+    <p>Best regards,<br>The AI Job Matching Team</p>
+</body>
+</html>
+        """
+
+        return self.send_email(to_email, subject, body, html_body)
+
     def send_application_status_email(
         self,
         to_email: str,

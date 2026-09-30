@@ -10,6 +10,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    # Password reset
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+    # Dev/testing only: when True, POST /auth/forgot-password returns the raw
+    # reset token in the response so it can be used without a configured SMTP
+    # server. MUST stay False in production.
+    EXPOSE_RESET_TOKEN: bool = False
+
     # File Upload
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     UPLOAD_DIR: str = "uploads/cvs"

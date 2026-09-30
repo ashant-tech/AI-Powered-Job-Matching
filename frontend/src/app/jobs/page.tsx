@@ -21,8 +21,35 @@ export default function JobsPage() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   useEffect(() => {
-    setToken(localStorage.getItem('token'));
+    const storedToken = localStorage.getItem('token');
+    setToken(storedToken);
+    if (storedToken) {
+      loadDefaultField(storedToken);
+    }
   }, []);
+
+  // Pre-select the logged-in user's CV-detected field so the default browse
+  // shows jobs relevant to them; they can switch to "All Fields" to see all.
+  const loadDefaultField = async (authToken: string) => {
+    try {
+      const meRes = await fetch('http://localhost:8000/api/auth/me', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (!meRes.ok) return;
+      const me = await meRes.json();
+      const cvRes = await fetch(`http://localhost:8000/api/cv/user/${me.id}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      if (!cvRes.ok) return;
+      const cvs = await cvRes.json();
+      const detected = (cvs || []).find((c: any) => c.field && c.field !== 'other');
+      if (detected?.field) {
+        setFieldFilter(detected.field);
+      }
+    } catch {
+      // If we can't load the field, fall back to showing all jobs.
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
