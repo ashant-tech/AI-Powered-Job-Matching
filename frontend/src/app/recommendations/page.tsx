@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { matchingApi } from '../../services/matchingApi';
 
 export default function RecommendationsPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function RecommendationsPage() {
   const [cvs, setCvs] = useState<any[]>([]);
   const [cvAnalysis, setCvAnalysis] = useState<any>(null);
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
+  const markedViewed = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -108,8 +110,31 @@ export default function RecommendationsPage() {
     return 'bg-red-500';
   };
 
+  const markMatchViewed = async (match: any) => {
+    if (!match?.id || match.status === 'viewed' || markedViewed.current.has(match.id)) {
+      return;
+    }
+    markedViewed.current.add(match.id);
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      await matchingApi.updateMatchStatus(token, match.id, 'viewed');
+      setMatches((prev) =>
+        prev.map((m) => (m.id === match.id ? { ...m, status: 'viewed' } : m))
+      );
+    } catch (error) {
+      // View-tracking is best-effort; let a later expansion retry.
+      markedViewed.current.delete(match.id);
+      console.error('Failed to mark match viewed:', error);
+    }
+  };
+
   const toggleMatchExpansion = (matchId: number) => {
-    setExpandedMatch(expandedMatch === matchId ? null : matchId);
+    const opening = expandedMatch !== matchId;
+    setExpandedMatch(opening ? matchId : null);
+    if (opening) {
+      markMatchViewed(matches.find((m) => m.id === matchId));
+    }
   };
 
   return (

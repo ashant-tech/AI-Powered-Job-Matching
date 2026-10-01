@@ -18,20 +18,21 @@ async def get_user_stats(current_user = Depends(get_current_user), db: Session =
     try:
         # Count total matches for user
         total_matches = db.query(Match).filter(Match.user_id == current_user.id).count()
-        # Count pending applications (matches with status 'pending')
+        # Pending applications = matches the user hasn't applied to yet (still
+        # actionable). Viewing a job doesn't clear it from this funnel.
         pending_applications = db.query(Match).filter(
             Match.user_id == current_user.id,
-            Match.status == "pending"
+            Match.status.in_(["pending", "viewed"])
         ).count()
         # Count unread notifications
         unread_notifications = db.query(Notification).filter(
             Notification.user_id == current_user.id,
             Notification.is_read == False
         ).count()
-        # For viewed jobs, we'll use matches with status 'viewed' as a proxy
+        # Viewed jobs = opened the detail; applying implies it was viewed too.
         viewed_jobs = db.query(Match).filter(
             Match.user_id == current_user.id,
-            Match.status == "viewed"
+            Match.status.in_(["viewed", "applied"])
         ).count()
         return {
             "totalMatches": total_matches,
