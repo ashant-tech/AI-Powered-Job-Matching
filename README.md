@@ -359,5 +359,5 @@ For support, please open an issue in the GitHub repository or contact the develo
 - ⏳ Salary optimization
 
 ---
-
+there i want advance this project and the coloborator this project
 Built with ❤️ using modern web technologies and artificial intelligence.
