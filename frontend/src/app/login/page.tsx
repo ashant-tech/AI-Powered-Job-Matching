@@ -27,7 +27,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      // 502/503/504 usually mean the backend free instance is cold-starting;
+      // retry once after a short pause instead of showing a hard error.
+      const COLD_START = new Set([502, 503, 504]);
+      let response: Response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -37,26 +40,49 @@ export default function LoginPage() {
           password: formData.password,
         }),
       });
+      if (COLD_START.has(response.status)) {
+        setError('Server is starting up, retrying…');
+        await new Promise((r) => setTimeout(r, 3000));
+        response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            username: formData.email,
+            password: formData.password,
+          }),
+        });
+        setError('');
+      }
 
       const responseBody = await response.text();
-      let data: Record<string, unknown>;
+      let data: Record<string, unknown> = {};
       try {
         const parsedBody: unknown = JSON.parse(responseBody);
-        data = typeof parsedBody === 'object' && parsedBody !== null
-          ? parsedBody as Record<string, unknown>
-          : {};
+        if (typeof parsedBody === 'object' && parsedBody !== null) {
+          data = parsedBody as Record<string, unknown>;
+        }
       } catch {
-        throw new Error(response.ok
-          ? 'Login service returned an invalid response. Please try again later.'
-          : 'Login service is temporarily unavailable. Please try again later.');
+        // Non-JSON body (gateway/proxy error page) — mapped to a clear message below.
       }
 
       if (!response.ok) {
-        const message = response.status === 401
-          ? 'Invalid email or password'
-          : typeof data.detail === 'string'
-            ? data.detail
-            : 'Login service is temporarily unavailable. Please try again later.';
+        let message: string;
+        if (response.status === 401) {
+          message = 'Invalid email or password';
+        } else if (response.status === 429) {
+          const retryAfter = Number(response.headers.get('Retry-After'));
+          message = Number.isFinite(retryAfter) && retryAfter > 0
+            ? `Too many login attempts. Please try again in ${retryAfter} seconds.`
+            : 'Too many login attempts. Please wait a minute and try again.';
+        } else if (COLD_START.has(response.status)) {
+          message = 'The server is still starting up. Please wait a few seconds and try again.';
+        } else if (typeof data.detail === 'string') {
+          message = data.detail;
+        } else {
+          message = 'Login service is unavailable right now. Please try again in a moment.';
+        }
         throw new Error(message);
       }
 

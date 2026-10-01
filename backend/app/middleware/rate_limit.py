@@ -22,7 +22,7 @@ class RateLimiter:
             self._hits.clear()
 
     async def __call__(self, request: Request):
-        key = request.client.host if request.client else "unknown"
+        key = self._client_key(request)
         now = time.monotonic()
         with self._lock:
             window = self._hits[key]
@@ -36,3 +36,13 @@ class RateLimiter:
                     headers={"Retry-After": str(retry_after)},
                 )
             window.append(now)
+
+    @staticmethod
+    def _client_key(request: Request) -> str:
+        # Behind the Render frontend proxy (and Cloudflare) every request would
+        # otherwise share the proxy's IP, so all users would share one limit
+        # bucket and trip it together. Trust the leftmost forwarded hop.
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"

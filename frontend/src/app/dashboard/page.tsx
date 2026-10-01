@@ -15,6 +15,24 @@ export default function DashboardPage() {
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // An expired/invalid token must send the user back to login instead of
+  // silently rendering an empty dashboard with zeroed stats.
+  const authedFetch = async (path: string) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(path, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      router.push('/login');
+      return null;
+    }
+    return response;
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -47,14 +65,8 @@ export default function DashboardPage() {
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
+      const response = await authedFetch('/api/auth/me');
+      if (response && response.ok) {
         const userData = await response.json();
         setUser(userData);
       }
@@ -65,17 +77,12 @@ export default function DashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/matching/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
+      const response = await authedFetch('/api/matching/stats');
+      if (response && response.ok) {
         const statsData = await response.json();
         setStats(statsData);
-      } else {
+        setLastUpdated(new Date());
+      } else if (response) {
         console.error('Failed to fetch stats');
       }
     } catch (error) {
@@ -87,14 +94,8 @@ export default function DashboardPage() {
 
   const fetchRecentActivity = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/matching/recent-activity', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
+      const response = await authedFetch('/api/matching/recent-activity');
+      if (response && response.ok) {
         const activityData = await response.json();
         setRecentActivity(activityData);
       }
@@ -136,6 +137,17 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Live indicator */}
+        <div className="flex items-center justify-end gap-2 mb-3 text-xs text-gray-500">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+          </span>
+          <span>
+            Live{lastUpdated ? ` · updated ${lastUpdated.toLocaleTimeString()}` : ''}
+          </span>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-md">

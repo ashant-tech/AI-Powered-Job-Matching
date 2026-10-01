@@ -153,6 +153,32 @@ def test_login_rate_limited():
     assert response.status_code == 429
 
 
+def test_login_rate_limit_keys_on_forwarded_client_ip():
+    # Behind the Render frontend proxy all users arrive from the proxy's IP, so
+    # the limiter must key on X-Forwarded-For or everyone shares one bucket.
+    for _ in range(20):
+        response = client.post(
+            "/api/auth/login",
+            data={"username": "nobody@example.com", "password": "WrongPassword"},
+            headers={"X-Forwarded-For": "1.1.1.1"}
+        )
+        assert response.status_code == 401
+
+    limited = client.post(
+        "/api/auth/login",
+        data={"username": "nobody@example.com", "password": "WrongPassword"},
+        headers={"X-Forwarded-For": "1.1.1.1"}
+    )
+    assert limited.status_code == 429
+
+    other_ip = client.post(
+        "/api/auth/login",
+        data={"username": "nobody@example.com", "password": "WrongPassword"},
+        headers={"X-Forwarded-For": "2.2.2.2"}
+    )
+    assert other_ip.status_code == 401
+
+
 def test_mark_notification_as_read_not_found_returns_404():
     login_response = client.post(
         "/api/auth/login",
