@@ -196,6 +196,85 @@ export default function DashboardPage() {
               <div className="font-semibold">Browse Jobs</div>
               <div className="text-sm text-gray-600">Search all available jobs</div>
             </Link>
+            <Link
+              href="/career-guidance"
+              className="bg-purple-50 border-2 border-purple-200 p-4 rounded-lg hover:bg-purple-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">🚀</div>
+              <div className="font-semibold">Career Guidance</div>
+              <div className="text-sm text-gray-600">Plan your career path</div>
+            </Link>
+            <Link
+              href="/resume-analysis"
+              className="bg-orange-50 border-2 border-orange-200 p-4 rounded-lg hover:bg-orange-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">📝</div>
+              <div className="font-semibold">Resume Analysis</div>
+              <div className="text-sm text-gray-600">Optimize your resume</div>
+            </Link>
+            <Link
+              href="/notifications"
+              className="bg-red-50 border-2 border-red-200 p-4 rounded-lg hover:bg-red-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">🔔</div>
+              <div className="font-semibold">Notifications</div>
+              <div className="text-sm text-gray-600">Check your alerts</div>
+            </Link>
+          </div>
+        </div>
+
+        {/* AI-Powered Features */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">AI-Powered Features</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Link
+              href="/interview-prep"
+              className="bg-teal-50 border-2 border-teal-200 p-4 rounded-lg hover:bg-teal-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">🎤</div>
+              <div className="font-semibold">Interview Prep</div>
+              <div className="text-sm text-gray-600">Practice with AI questions</div>
+            </Link>
+            <Link
+              href="/career-transition"
+              className="bg-pink-50 border-2 border-pink-200 p-4 rounded-lg hover:bg-pink-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">🔄</div>
+              <div className="font-semibold">Career Transition</div>
+              <div className="text-sm text-gray-600">Explore new career paths</div>
+            </Link>
+            <Link
+              href="/learning-hub"
+              className="bg-cyan-50 border-2 border-cyan-200 p-4 rounded-lg hover:bg-cyan-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">📚</div>
+              <div className="font-semibold">Learning Hub</div>
+              <div className="text-sm text-gray-600">Personalized learning plans</div>
+            </Link>
+            <Link
+              href="/salary-negotiation"
+              className="bg-yellow-50 border-2 border-yellow-200 p-4 rounded-lg hover:bg-yellow-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">💰</div>
+              <div className="font-semibold">Salary Negotiation</div>
+              <div className="text-sm text-gray-600">Market analysis & scripts</div>
+            </Link>
+            <Link
+              href="/network-analysis"
+              className="bg-lime-50 border-2 border-lime-200 p-4 rounded-lg hover:bg-lime-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">🤝</div>
+              <div className="font-semibold">Network Analysis</div>
+              <div className="text-sm text-gray-600">Professional networking tips</div>
+            </Link>
+            <Link
+              href="/culture-match"
+              className="bg-rose-50 border-2 border-rose-200 p-4 rounded-lg hover:bg-rose-100 transition text-center"
+            >
+              <div className="text-2xl mb-2">🏢</div>
+              <div className="font-semibold">Culture Match</div>
+              <div className="text-sm text-gray-600">Find your ideal work environment</div>
+            </Link>
           </div>
         </div>
 
