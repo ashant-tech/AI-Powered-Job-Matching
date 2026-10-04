@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
+from typing import Optional
 from app.config.database import get_db
 from app.schemas.match import MatchResponse, MatchUpdate
 from app.services.matching_service import MatchingService
