@@ -75,6 +75,8 @@ class CVService:
         try:
             MatchingService(self.db).find_matches_for_cv(user_id, db_cv.id)
         except Exception as e:
+            self.db.rollback()
+            self.db.refresh(db_cv)
             print(f"Error finding matches for CV {db_cv.id}: {e}")
         
         return db_cv
