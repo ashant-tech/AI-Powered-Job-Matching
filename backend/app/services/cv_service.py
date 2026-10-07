@@ -105,6 +105,13 @@ class CVService:
         cv.total_years_experience = analysis.get("total_years_experience")
         cv.job_titles = json.dumps(analysis.get("job_titles", []))
         cv.contact_info = json.dumps(analysis.get("contact_info", {}))
+        
+        # Store enhanced analysis data
+        cv.achievements = json.dumps(analysis.get("achievements", []))
+        cv.certifications = json.dumps(analysis.get("certifications", []))
+        cv.projects = json.dumps(analysis.get("projects", []))
+        cv.languages = json.dumps(analysis.get("languages", []))
+        cv.soft_skills = json.dumps(analysis.get("soft_skills", []))
 
         # Auto-detect the user's field from the CV itself (education + skills + text)
         cv.field = classify_cv(cv.parsed_text or "", cv.skills or "", cv.education or "")

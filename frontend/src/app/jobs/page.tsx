@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { jobApi, FIELD_LABELS } from '../../services/jobApi';
+import { jobApi, FIELD_LABELS, ETHIOPIAN_CITIES } from '../../services/jobApi';
 
 export default function JobsPage() {
   const router = useRouter();
@@ -111,6 +111,10 @@ export default function JobsPage() {
     setForYou(false);
     setLoading(true);
     fetchJobs();
+  };
+
+  const formatSalary = (salary: number) => {
+    return `${salary.toLocaleString()} ETB`;
   };
 
   const getDeadlineDisplay = (deadline: string) => {
@@ -262,7 +266,7 @@ export default function JobsPage() {
                   <div className="flex-1">
                     <input
                       type="number"
-                      placeholder="Min Salary"
+                      placeholder="Min Salary (ETB)"
                       value={salaryMin}
                       onChange={(e) => setSalaryMin(e.target.value)}
                       disabled={forYou}
@@ -272,7 +276,7 @@ export default function JobsPage() {
                   <div className="flex-1">
                     <input
                       type="number"
-                      placeholder="Max Salary"
+                      placeholder="Max Salary (ETB)"
                       value={salaryMax}
                       onChange={(e) => setSalaryMax(e.target.value)}
                       disabled={forYou}
@@ -343,13 +347,13 @@ export default function JobsPage() {
                   )}
                   {salaryMin && (
                     <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                      Min: ${salaryMin}
+                      Min: {formatSalary(parseInt(salaryMin))}
                       <button onClick={() => setSalaryMin('')} className="hover:text-indigo-600">×</button>
                     </span>
                   )}
                   {salaryMax && (
                     <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                      Max: ${salaryMax}
+                      Max: {formatSalary(parseInt(salaryMax))}
                       <button onClick={() => setSalaryMax('')} className="hover:text-indigo-600">×</button>
                     </span>
                   )}
@@ -416,7 +420,7 @@ export default function JobsPage() {
                       )}
                       {job.salary_min && job.salary_max && (
                         <span className="flex items-center gap-1">
-                          💰 ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
+                          💰 {formatSalary(job.salary_min)} - {formatSalary(job.salary_max)}
                         </span>
                       )}
                       {job.deadline && (

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from typing import Optional
+from typing import Optional, Dict, Any
+from pydantic import BaseModel
 from app.config.database import get_db
 from app.schemas.match import MatchResponse, MatchUpdate
 from app.services.matching_service import MatchingService
@@ -22,6 +23,10 @@ from app.models.cv import CV
 from app.models.user import User
 
 router = APIRouter()
+
+# Request/Response Schemas
+class BenefitsAnalysisRequest(BaseModel):
+    benefits: Dict[str, str]
 
 @router.get("/stats", response_model=dict)
 async def get_user_stats(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -281,15 +286,26 @@ async def get_mock_interview(job_id: str, current_user = Depends(get_current_use
         raise HTTPException(status_code=status.HTTP_500, detail=str(e))
 
 @router.post("/interview-preparation/analyze-answer", response_model=dict)
-async def analyze_answer(question: str, answer: str):
+async def analyze_answer(data: dict):
     """Analyze the quality of an interview answer."""
     try:
         interview_service = InterviewPreparationService()
+
+        question = data.get("question")
+        answer = data.get("answer")
+
+        if not question or not answer:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Both question and answer are required"
+            )
 
         # Analyze answer
         analysis = interview_service.analyze_answer_quality(question, answer)
 
         return analysis
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500, detail=str(e))
 
@@ -554,10 +570,16 @@ async def generate_negotiation_script(job_id: str, target_salary: int, user_stre
         raise HTTPException(status_code=status.HTTP_500, detail=str(e))
 
 @router.post("/salary/benefits-analysis", response_model=dict)
-async def analyze_benefits_package(benefits: dict):
+async def analyze_benefits_package(request: BenefitsAnalysisRequest):
     """Analyze and score a benefits package."""
     try:
         salary_service = SalaryNegotiationService()
+
+        # Extract benefits from request
+        benefits = request.benefits
+
+        # Debug logging
+        print(f"Received benefits: {benefits}")
 
         # Analyze benefits
         benefits_analysis = salary_service.analyze_benefits_package(benefits)

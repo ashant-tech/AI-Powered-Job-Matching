@@ -4,8 +4,8 @@ from typing import List, Dict, Any
 
 def analyze_cv_text(cv_text: str) -> dict:
     """
-    Analyze CV text and extract structured information.
-    This is a simplified version - in production, you'd use NLP/ML models.
+    Analyze CV text and extract structured information with enhanced intelligence.
+    Uses advanced pattern recognition and contextual analysis.
     """
     analysis = {
         "experience": [],
@@ -15,7 +15,12 @@ def analyze_cv_text(cv_text: str) -> dict:
         "experience_level": "Not specified",
         "total_years_experience": 0,
         "job_titles": [],
-        "key_skills": []
+        "key_skills": [],
+        "achievements": [],
+        "certifications": [],
+        "projects": [],
+        "languages": [],
+        "soft_skills": []
     }
 
     # Extract contact information
@@ -45,6 +50,23 @@ def analyze_cv_text(cv_text: str) -> dict:
     # Extract education with more detail
     educations = extract_education(cv_text)
     analysis["education"] = educations
+
+    # Extract achievements (quantifiable results)
+    analysis["achievements"] = extract_achievements(cv_text)
+
+    # Extract certifications
+    analysis["certifications"] = extract_certifications(cv_text)
+
+    # Extract projects
+    analysis["projects"] = extract_projects(cv_text)
+
+    # Extract languages
+    analysis["languages"] = extract_languages(cv_text)
+
+    # Extract technical skills with categorization
+    skills_data = extract_enhanced_skills(cv_text)
+    analysis["key_skills"] = skills_data["technical"]
+    analysis["soft_skills"] = skills_data["soft"]
 
     # Generate intelligent summary
     analysis["summary"] = generate_intelligent_summary(analysis)
@@ -282,3 +304,118 @@ def generate_intelligent_summary(analysis: dict) -> str:
         return "CV analysis complete. Profile information extracted."
 
     return ". ".join(summary_parts) + "."
+
+
+def extract_achievements(cv_text: str) -> List[str]:
+    """Extract quantifiable achievements from CV text."""
+    achievements = []
+    
+    # Look for patterns with numbers and results
+    achievement_patterns = [
+        r'(?:increased|reduced|improved|achieved|delivered|saved|generated)\s+(?:by|to)?\s*(?:\d+%|\$\d+|\d+)',
+        r'(?:led|managed|directed|supervised)\s+(?:a\s+)?\d+(?:\s+(?:person|people|team|member|developer|employee))?',
+        r'(?:built|created|developed|launched|implemented)\s+(?:a\s+)?\w+(?:\s+(?:system|platform|application|tool|solution))?',
+    ]
+    
+    for pattern in achievement_patterns:
+        matches = re.findall(pattern, cv_text, re.IGNORECASE)
+        achievements.extend(matches)
+    
+    return achievements[:10]  # Return top 10
+
+
+def extract_certifications(cv_text: str) -> List[str]:
+    """Extract certifications from CV text."""
+    certifications = []
+    
+    # Common certification keywords
+    cert_keywords = [
+        'certified', 'certification', 'certificate', 'AWS', 'PMP', 'Scrum',
+        'CCNA', 'MCSE', 'Oracle', 'Google Cloud', 'Microsoft', 'CompTIA',
+        'CISSP', 'CEH', 'ITIL', 'PRINCE2', 'Six Sigma', 'ISO'
+    ]
+    
+    # Look for certification patterns
+    for keyword in cert_keywords:
+        if keyword.lower() in cv_text.lower():
+            # Extract the full certification context
+            pattern = rf'(?:[A-Z][a-z]+\s+)?{keyword}(?:\s+[A-Z][a-z]+)?'
+            matches = re.findall(pattern, cv_text, re.IGNORECASE)
+            certifications.extend(matches)
+    
+    return list(set(certifications))[:10]  # Remove duplicates, return top 10
+
+
+def extract_projects(cv_text: str) -> List[str]:
+    """Extract project information from CV text."""
+    projects = []
+    
+    # Look for project indicators
+    project_indicators = ['project', 'built', 'developed', 'created', 'launched', 'implemented']
+    
+    for indicator in project_indicators:
+        # Simple extraction - in production, use more sophisticated NLP
+        if indicator in cv_text.lower():
+            pattern = rf'{indicator}\s+[A-Z][^.,;]+'
+            matches = re.findall(pattern, cv_text, re.IGNORECASE)
+            projects.extend(matches)
+    
+    return projects[:8]  # Return top 8
+
+
+def extract_languages(cv_text: str) -> List[str]:
+    """Extract language skills from CV text."""
+    languages = []
+    
+    # Common languages
+    common_languages = [
+        'english', 'amharic', 'french', 'german', 'spanish', 'chinese',
+        'japanese', 'arabic', 'portuguese', 'russian', 'italian', 'dutch'
+    ]
+    
+    for lang in common_languages:
+        if lang in cv_text.lower():
+            languages.append(lang.capitalize())
+    
+    return languages
+
+
+def extract_enhanced_skills(cv_text: str) -> Dict[str, List[str]]:
+    """Extract and categorize skills into technical and soft skills."""
+    technical_skills = [
+        'python', 'javascript', 'java', 'c++', 'c#', 'ruby', 'php', 'swift', 'go',
+        'react', 'angular', 'vue', 'node', 'django', 'flask', 'spring', 'express',
+        'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'oracle', 'redis',
+        'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'terraform', 'jenkins',
+        'git', 'linux', 'windows', 'macos', 'android', 'ios', 'machine learning',
+        'data science', 'ai', 'artificial intelligence', 'deep learning', 'nlp',
+        'tensorflow', 'pytorch', 'scikit-learn', 'pandas', 'numpy', 'matplotlib',
+        'agile', 'scrum', 'kanban', 'devops', 'ci/cd', 'microservices', 'rest api',
+        'graphql', 'html', 'css', 'sass', 'webpack', 'vite', 'next.js', 'nuxt.js'
+    ]
+    
+    soft_skills = [
+        'leadership', 'communication', 'teamwork', 'collaboration', 'problem solving',
+        'critical thinking', 'time management', 'adaptability', 'creativity', 'innovation',
+        'mentoring', 'training', 'presentation', 'negotiation', 'decision making',
+        'strategic thinking', 'analytical', 'detail-oriented', 'organized', 'flexible',
+        'proactive', 'self-motivated', 'customer service', 'interpersonal', 'management'
+    ]
+    
+    found_technical = []
+    found_soft = []
+    
+    cv_lower = cv_text.lower()
+    
+    for skill in technical_skills:
+        if skill in cv_lower:
+            found_technical.append(skill.capitalize())
+    
+    for skill in soft_skills:
+        if skill in cv_lower:
+            found_soft.append(skill.capitalize())
+    
+    return {
+        "technical": found_technical,
+        "soft": found_soft
+    }

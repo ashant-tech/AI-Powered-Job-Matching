@@ -40,6 +40,10 @@ export default function SalaryNegotiationPage() {
     }
   };
 
+  const formatSalary = (salary: number) => {
+    return `${salary.toLocaleString()} ETB`;
+  };
+
   const analyzeOffer = async (job: any) => {
     setSelectedJob(job);
     setLoading(true);
@@ -98,7 +102,7 @@ export default function SalaryNegotiationPage() {
                 >
                   <h3 className="font-semibold">{job.title}</h3>
                   <p className="text-gray-600">{job.company}</p>
-                  <p className="text-sm text-gray-500">{job.salary_min ? `$${job.salary_min.toLocaleString()}` : 'Salary not specified'}</p>
+                  <p className="text-sm text-gray-500">{job.salary_min ? formatSalary(job.salary_min) : 'Salary not specified'}</p>
                 </div>
               ))}
             </div>
@@ -130,19 +134,19 @@ export default function SalaryNegotiationPage() {
                     <div>
                       <h3 className="font-semibold mb-2">Job Salary</h3>
                       <div className="text-gray-700">
-                        Min: ${offerAnalysis.job_salary.min?.toLocaleString() || 'N/A'}
+                        Min: {offerAnalysis.job_salary.min ? formatSalary(offerAnalysis.job_salary.min) : 'N/A'}
                       </div>
                       <div className="text-gray-700">
-                        Max: ${offerAnalysis.job_salary.max?.toLocaleString() || 'N/A'}
+                        Max: {offerAnalysis.job_salary.max ? formatSalary(offerAnalysis.job_salary.max) : 'N/A'}
                       </div>
                     </div>
                     <div>
                       <h3 className="font-semibold mb-2">Market Salary</h3>
                       <div className="text-gray-700">
-                        Min: ${offerAnalysis.market_salary.min?.toLocaleString() || 'N/A'}
+                        Min: {offerAnalysis.market_salary.min ? formatSalary(offerAnalysis.market_salary.min) : 'N/A'}
                       </div>
                       <div className="text-gray-700">
-                        Max: ${offerAnalysis.market_salary.max?.toLocaleString() || 'N/A'}
+                        Max: {offerAnalysis.market_salary.max ? formatSalary(offerAnalysis.market_salary.max) : 'N/A'}
                       </div>
                     </div>
                   </div>

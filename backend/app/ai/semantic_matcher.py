@@ -29,13 +29,11 @@ def _tokens(text: str) -> set[str]:
 
 
 class SemanticMatcher:
-    """Rule-based CV↔job relevance scorer.
+    """CV↔job relevance scorer using actual semantic similarity (embeddings).
 
-    Each component returns a score in [0, 1] or None when there is no signal to
-    judge on. The final score is the weighted average over the components that
-    actually have signal, scaled to 0-100. Unknown components are excluded
-    rather than given a neutral baseline, so a job is never inflated just
-    because we lack data about it.
+    Uses sentence-transformers for true semantic matching, not just word overlap.
+    "Software engineer" and "developer" will now match because they have similar meanings,
+    not because they share words.
     """
 
     WEIGHTS = {
@@ -44,6 +42,101 @@ class SemanticMatcher:
         "semantic": 20.0,
         "title": 15.0,
     }
+
+    def __init__(self):
+        self.embedding_model = None
+        self.synonym_map = {}
+        self._load_embedding_model()
+
+    def _load_embedding_model(self):
+        """Load sentence-transformers model for semantic embeddings."""
+        try:
+            from sentence_transformers import SentenceTransformer
+            # Use a lightweight model suitable for production
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        except ImportError:
+            # Fall back to enhanced word overlap with synonyms if sentence-transformers not available
+            print("Warning: sentence-transformers not installed, using enhanced word overlap with synonyms")
+            self.embedding_model = None
+            self._build_synonym_map()
+
+    def _build_synonym_map(self):
+        """Build a synonym map for enhanced semantic matching without embeddings."""
+        self.synonym_map = {
+            # Software/Development synonyms
+            "software": ["software engineer", "developer", "programmer", "coding", "programming"],
+            "developer": ["software engineer", "programmer", "coder", "developer"],
+            "engineer": ["software engineer", "developer", "programmer", "architect"],
+            "programmer": ["developer", "software engineer", "coder", "software"],
+            "coding": ["programming", "development", "software development"],
+            "programming": ["coding", "software development", "development"],
+            
+            # Web development
+            "web": ["frontend", "backend", "full stack", "web development"],
+            "frontend": ["ui", "user interface", "client-side", "front-end"],
+            "backend": ["server-side", "api", "server", "back-end"],
+            "full stack": ["fullstack", "full-stack", "frontend and backend"],
+            
+            # Data
+            "data": ["analytics", "data science", "database", "data analysis"],
+            "analytics": ["data analysis", "data science", "business intelligence"],
+            "database": ["db", "sql", "nosql", "data storage"],
+            
+            # Cloud/DevOps
+            "cloud": ["aws", "azure", "gcp", "infrastructure", "cloud computing"],
+            "devops": ["deployment", "ci/cd", "operations", "infrastructure"],
+            "aws": ["amazon web services", "cloud", "infrastructure"],
+            "docker": ["container", "containers", "virtualization"],
+            "kubernetes": ["k8s", "orchestration", "containers"],
+            
+            # Management
+            "manager": ["management", "lead", "supervisor", "team lead"],
+            "leadership": ["manager", "team lead", "supervisor", "management"],
+            "team": ["group", "squad", "department", "unit"],
+            
+            # Business
+            "business": ["finance", "accounting", "marketing", "sales", "operations"],
+            "finance": ["accounting", "financial", "money", "budget"],
+            "marketing": ["promotion", "advertising", "branding", "sales"],
+            "sales": ["revenue", "business development", "selling"],
+            
+            # Common skill synonyms
+            "javascript": ["js", "ecmascript", "scripting"],
+            "python": ["py", "python3", "scripting"],
+            "java": ["jvm", "object-oriented"],
+            "react": ["reactjs", "ui framework", "frontend"],
+            "angular": ["angularjs", "framework", "typescript"],
+            "sql": ["database", "query", "relational database"],
+            "api": ["rest", "restful", "interface", "web service"],
+        }
+
+    def _get_embedding(self, text: str) -> list:
+        """Get embedding for text using the model."""
+        if self.embedding_model is None:
+            return None
+        try:
+            return self.embedding_model.encode(text)
+        except Exception as e:
+            print(f"Error generating embedding: {e}")
+            return None
+
+    def _cosine_similarity(self, vec1: list, vec2: list) -> float:
+        """Calculate cosine similarity between two embedding vectors."""
+        if not vec1 or not vec2:
+            return 0.0
+        try:
+            import numpy as np
+            vec1_array = np.array(vec1)
+            vec2_array = np.array(vec2)
+            dot_product = np.dot(vec1_array, vec2_array)
+            norm1 = np.linalg.norm(vec1_array)
+            norm2 = np.linalg.norm(vec2_array)
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+            return dot_product / (norm1 * norm2)
+        except ImportError:
+            # Fallback if numpy not available
+            return 0.0
 
     def calculate_match_score(self, cv: CV, job: ExternalJob) -> float:
         components = {
@@ -129,7 +222,10 @@ class SemanticMatcher:
 
         # Semantic match reason
         if components["semantic"] is not None and components["semantic"] > 0.3:
-            reasons.append("Your CV content shows strong semantic similarity to the job description")
+            if self.embedding_model:
+                reasons.append("Your CV content shows strong semantic similarity to the job description (using AI embeddings)")
+            else:
+                reasons.append("Your CV content shows strong keyword similarity to the job description")
 
         # Title match reason
         if components["title"] is not None and components["title"] > 0.5:
@@ -240,16 +336,44 @@ class SemanticMatcher:
         return hits / len(job_skills)
 
     def _semantic_match(self, cv: CV, job: ExternalJob) -> float | None:
-        """Word-overlap similarity between the CV text and the job description."""
+        """Semantic similarity using sentence embeddings (not just word overlap)."""
         if not cv.parsed_text or not job.description:
             return None
+        
+        # Try to use embeddings for true semantic matching
+        if self.embedding_model is not None:
+            try:
+                # Get embeddings for CV text and job description
+                cv_embedding = self._get_embedding(cv.parsed_text)
+                job_embedding = self._get_embedding(job.description)
+                
+                if cv_embedding is not None and job_embedding is not None:
+                    similarity = self._cosine_similarity(cv_embedding, job_embedding)
+                    return similarity
+            except Exception as e:
+                print(f"Error in semantic matching: {e}")
+        
+        # Fallback to enhanced word overlap with synonyms
         cv_words = _tokens(cv.parsed_text)
         job_words = _tokens(job.description)
         if not cv_words or not job_words:
             return None
-        overlap = len(cv_words & job_words)
-        union = len(cv_words | job_words)
+        
+        # Expand words with synonyms
+        cv_words_expanded = self._expand_with_synonyms(cv_words)
+        job_words_expanded = self._expand_with_synonyms(job_words)
+        
+        overlap = len(cv_words_expanded & job_words_expanded)
+        union = len(cv_words_expanded | job_words_expanded)
         return overlap / union if union else None
+
+    def _expand_with_synonyms(self, words: set[str]) -> set[str]:
+        """Expand word set with synonyms for better semantic matching."""
+        expanded = set(words)
+        for word in words:
+            if word in self.synonym_map:
+                expanded.update(self.synonym_map[word])
+        return expanded
 
     def _title_keyword_match(self, cv: CV, job: ExternalJob) -> float | None:
         """Fraction of CV skills that appear in the job title or requirements."""

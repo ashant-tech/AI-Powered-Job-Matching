@@ -9,60 +9,61 @@ from app.models.job import ExternalJob
 from app.models.cv import CV
 
 
-# Market salary data by field, experience level, and location (simplified)
+# Market salary data by field, experience level, and location (Ethiopia market in ETB)
+# Salaries are annual estimates in Ethiopian Birr (ETB)
 MARKET_SALARY_DATA = {
     "computer_it": {
-        "entry_level": {"min": 50000, "median": 65000, "max": 80000},
-        "mid_level": {"min": 80000, "median": 100000, "max": 130000},
-        "senior_level": {"min": 120000, "median": 150000, "max": 200000},
-        "executive_level": {"min": 180000, "median": 250000, "max": 400000}
+        "entry_level": {"min": 180000, "median": 240000, "max": 360000},  # ~$3,000-$6,000 USD
+        "mid_level": {"min": 360000, "median": 480000, "max": 720000},    # ~$6,000-$12,000 USD
+        "senior_level": {"min": 600000, "median": 840000, "max": 1200000},  # ~$10,000-$20,000 USD
+        "executive_level": {"min": 1200000, "median": 1800000, "max": 3000000}  # ~$20,000-$50,000 USD
     },
     "engineering": {
-        "entry_level": {"min": 55000, "median": 70000, "max": 85000},
-        "mid_level": {"min": 75000, "median": 95000, "max": 120000},
-        "senior_level": {"min": 100000, "median": 130000, "max": 170000},
-        "executive_level": {"min": 150000, "median": 200000, "max": 300000}
+        "entry_level": {"min": 168000, "median": 240000, "max": 360000},
+        "mid_level": {"min": 300000, "median": 420000, "max": 600000},
+        "senior_level": {"min": 540000, "median": 720000, "max": 960000},
+        "executive_level": {"min": 960000, "median": 1440000, "max": 2400000}
     },
     "health": {
-        "entry_level": {"min": 45000, "median": 60000, "max": 75000},
-        "mid_level": {"min": 65000, "median": 85000, "max": 110000},
-        "senior_level": {"min": 90000, "median": 120000, "max": 160000},
-        "executive_level": {"min": 140000, "median": 180000, "max": 280000}
+        "entry_level": {"min": 144000, "median": 216000, "max": 288000},
+        "mid_level": {"min": 264000, "median": 360000, "max": 480000},
+        "senior_level": {"min": 480000, "median": 600000, "max": 840000},
+        "executive_level": {"min": 840000, "median": 1200000, "max": 1800000}
     },
     "business_finance": {
-        "entry_level": {"min": 50000, "median": 65000, "max": 80000},
-        "mid_level": {"min": 75000, "median": 95000, "max": 125000},
-        "senior_level": {"min": 100000, "median": 130000, "max": 180000},
-        "executive_level": {"min": 150000, "median": 200000, "max": 350000}
+        "entry_level": {"min": 156000, "median": 216000, "max": 300000},
+        "mid_level": {"min": 300000, "median": 420000, "max": 600000},
+        "senior_level": {"min": 540000, "median": 720000, "max": 960000},
+        "executive_level": {"min": 960000, "median": 1440000, "max": 2400000}
     }
 }
 
 
-# Location multipliers (cost of living adjustments)
+# Location multipliers (cost of living adjustments for Ethiopian cities)
 LOCATION_MULTIPLIERS = {
-    "san francisco": 1.4,
-    "new york": 1.35,
-    "seattle": 1.25,
-    "boston": 1.2,
-    "los angeles": 1.25,
-    "chicago": 1.15,
-    "austin": 1.1,
-    "denver": 1.05,
-    "atlanta": 1.0,
-    "dallas": 1.0,
-    "remote": 0.95,
+    "addis ababa": 1.3,      # Capital city, highest cost of living
+    "addis": 1.3,            # Abbreviation
+    "dire dawa": 1.1,        # Major city
+    "mekelle": 1.05,         # Regional capital
+    "hawassa": 1.05,         # Regional capital
+    "adama": 1.0,            # Industrial city
+    "bahir dar": 1.0,         # Regional capital
+    "gondar": 0.95,          # Historical city
+    "jimma": 0.95,           # Regional capital
+    "ethiopia": 1.0,         # Country average
+    "remote": 0.85,          # Remote work typically lower cost
     "other": 1.0
 }
 
 
-# Benefits package evaluation criteria
+# Benefits package evaluation criteria (Ethiopia-appropriate)
 BENEFITS_CRITERIA = {
-    "health_insurance": {"weight": 30, "excellent": "Full coverage with low deductibles", "good": "Standard coverage", "fair": "Basic coverage"},
-    "retirement_401k": {"weight": 25, "excellent": "6%+ match with immediate vesting", "good": "4-5% match", "fair": "3% or less match"},
-    "vacation_days": {"weight": 15, "excellent": "20+ days", "good": "15-19 days", "fair": "10-14 days"},
-    "remote_work": {"weight": 15, "excellent": "Full remote flexibility", "good": "Hybrid option", "fair": "On-site only"},
-    "professional_development": {"weight": 10, "excellent": "Full tuition reimbursement", "good": "Partial reimbursement", "fair": "Limited training budget"},
-    "bonus_structure": {"weight": 5, "excellent": "20%+ annual bonus", "good": "10-19% bonus", "fair": "No bonus or <10%"}
+    "health_insurance": {"weight": 30, "excellent": "Full coverage with minimal deductibles", "good": "Standard coverage", "fair": "Basic coverage"},
+    "retirement_pension": {"weight": 25, "excellent": "Company pension scheme with 10%+ contribution", "good": "Social security + private pension", "fair": "Social security only"},
+    "vacation_days": {"weight": 15, "excellent": "20+ days per year", "good": "15-19 days per year", "fair": "10-14 days per year"},
+    "remote_work": {"weight": 15, "excellent": "Full remote work option", "good": "Hybrid option available", "fair": "On-site only"},
+    "professional_development": {"weight": 10, "excellent": "Full training sponsorship", "good": "Partial training support", "fair": "Limited training budget"},
+    "bonus_structure": {"weight": 5, "excellent": "Annual bonus + performance bonuses", "good": "Annual bonus only", "fair": "No bonus or irregular"}
 }
 
 
@@ -293,11 +294,12 @@ class SalaryNegotiationService:
             max_score += weight
             
             if user_benefit:
-                # Simple scoring based on keywords
-                if "excellent" in str(user_benefit).lower() or any(word in str(user_benefit).lower() for word in ["full", "20+", "6%"]):
+                # Simple scoring based on keywords (updated for Ethiopia context)
+                benefit_lower = str(user_benefit).lower()
+                if any(word in benefit_lower for word in ["full", "comprehensive", "20+", "10%", "hybrid", "sponsorship", "annual"]):
                     score = weight
                     quality = "excellent"
-                elif "good" in str(user_benefit).lower() or any(word in str(user_benefit).lower() for word in ["standard", "4-5%", "15-19"]):
+                elif any(word in benefit_lower for word in ["standard", "social security", "15-19", "partial", "bonus"]):
                     score = int(weight * 0.75)
                     quality = "good"
                 else:
@@ -348,15 +350,15 @@ class SalaryNegotiationService:
         for benefit_type, analysis in benefit_analysis.items():
             if not analysis["provided"]:
                 if benefit_type == "health_insurance":
-                    improvements.append("Request comprehensive health insurance with low deductibles")
-                elif benefit_type == "retirement_401k":
-                    improvements.append("Negotiate for 401k matching (4-6% is standard)")
+                    improvements.append("Request comprehensive health insurance with minimal deductibles")
+                elif benefit_type == "retirement_pension":
+                    improvements.append("Negotiate for company pension scheme or retirement contributions")
                 elif benefit_type == "vacation_days":
                     improvements.append("Request additional vacation days (15+ is standard)")
                 elif benefit_type == "remote_work":
                     improvements.append("Discuss remote work or hybrid options")
                 elif benefit_type == "professional_development":
-                    improvements.append("Request tuition reimbursement or training budget")
+                    improvements.append("Request training sponsorship or development budget")
                 elif benefit_type == "bonus_structure":
                     improvements.append("Negotiate for performance-based bonus structure")
             elif analysis["quality"] == "fair":

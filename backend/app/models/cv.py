@@ -20,5 +20,10 @@ class CV(Base):
     total_years_experience = Column(Integer)  # total years of work experience
     job_titles = Column(Text)  # JSON string of job titles
     contact_info = Column(Text)  # JSON string of contact information
+    achievements = Column(Text)  # JSON string of quantifiable achievements
+    certifications = Column(Text)  # JSON string of certifications
+    projects = Column(Text)  # JSON string of projects
+    languages = Column(Text)  # JSON string of languages
+    soft_skills = Column(Text)  # JSON string of soft skills
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

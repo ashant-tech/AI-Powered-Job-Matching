@@ -13,6 +13,19 @@ export const FIELD_LABELS: Record<string, string> = {
   other: 'Other Fields',
 };
 
+export const ETHIOPIAN_CITIES = [
+  'Addis Ababa',
+  'Dire Dawa',
+  'Mekelle',
+  'Hawassa',
+  'Adama',
+  'Bahir Dar',
+  'Gondar',
+  'Jimma',
+  'Dessie',
+  'Shashamane',
+];
+
 export const jobApi = {
   async getJobs(params?: {
     skip?: number;

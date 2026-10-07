@@ -398,65 +398,147 @@ class InterviewPreparationService:
         return tips[:10]  # Return top 10 tips
     
     def analyze_answer_quality(self, question: str, answer: str) -> Dict:
-        """Analyze the quality of an interview answer using basic NLP."""
-        if not answer or len(answer) < 50:
+        """Analyze the quality of an interview answer using enhanced NLP."""
+        if not answer or len(answer) < 30:
             return {
                 "score": 0,
                 "feedback": "Your answer is too short. Provide more detail and examples.",
                 "strengths": [],
                 "improvements": ["Add more detail", "Provide specific examples", "Use the STAR method"]
             }
-        
-        score = 50  # Base score for providing an answer
+
+        score = 40  # Base score for providing an answer
         strengths = []
         improvements = []
         
-        # Check answer length
-        if len(answer) > 200:
-            score += 15
-            strengths.append("Good detail provided")
-        else:
-            improvements.append("Add more detail to your answer")
+        answer_lower = answer.lower()
+        answer_words = answer_lower.split()
         
-        # Check for STAR method indicators
-        star_indicators = ["situation", "task", "action", "result", "first", "then", "finally", "as a result"]
-        if any(indicator in answer.lower() for indicator in star_indicators):
-            score += 20
-            strengths.append("Structured response using STAR method")
-        else:
-            improvements.append("Use the STAR method for more structured answers")
-        
-        # Check for specific examples/numbers
-        if any(char.isdigit() for char in answer):
+        # Check answer length and quality
+        if len(answer) > 100:
             score += 10
-            strengths.append("Includes specific examples/metrics")
-        else:
-            improvements.append("Add specific examples and metrics")
+            strengths.append("Good length with sufficient detail")
+        elif len(answer) < 50:
+            improvements.append("Your answer is brief - consider adding more detail")
         
-        # Check for action verbs
-        action_verbs = ["led", "managed", "developed", "created", "implemented", "achieved", "improved", "increased"]
-        if any(verb in answer.lower() for verb in action_verbs):
+        # Check for STAR method indicators (Situation, Task, Action, Result)
+        star_indicators = {
+            "situation": ["situation", "context", "background", "when i was", "in my previous role"],
+            "task": ["task", "challenge", "problem", "goal", "objective", "needed to"],
+            "action": ["action", "i did", "i took", "i implemented", "i created", "i managed", "i led"],
+            "result": ["result", "outcome", "achieved", "successful", "completed", "accomplished", "as a result"]
+        }
+        
+        star_score = 0
+        for star_type, indicators in star_indicators.items():
+            if any(indicator in answer_lower for indicator in indicators):
+                star_score += 5
+                if star_type == "result":
+                    strengths.append("Includes measurable results")
+        
+        if star_score >= 15:
+            score += 20
+            strengths.append("Well-structured response using STAR method")
+        elif star_score >= 10:
+            score += 10
+            strengths.append("Some STAR structure present")
+        else:
+            improvements.append("Use the STAR method: Situation, Task, Action, Result")
+        
+        # Check for specific examples/numbers/metrics
+        has_numbers = any(char.isdigit() for char in answer)
+        has_quantifiable = any(word in answer_lower for word in ["percent", "%", "increase", "decrease", "dollar", "$", "revenue", "savings", "time", "hours", "days", "months", "years"])
+        
+        if has_numbers and has_quantifiable:
+            score += 15
+            strengths.append("Includes specific metrics and quantifiable results")
+        elif has_numbers:
+            score += 8
+            strengths.append("Includes some numerical data")
+        else:
+            improvements.append("Add specific metrics (e.g., 'increased sales by 25%')")
+        
+        # Check for action verbs (stronger list)
+        action_verbs = [
+            "led", "managed", "developed", "created", "implemented", "achieved", "improved", "increased",
+            "reduced", "designed", "built", "launched", "delivered", "executed", "optimized", "solved",
+            "coordinated", "directed", "supervised", "trained", "mentored", "analyzed", "researched"
+        ]
+        action_count = sum(1 for verb in action_verbs if verb in answer_lower)
+        
+        if action_count >= 3:
+            score += 10
+            strengths.append("Uses multiple strong action verbs")
+        elif action_count >= 1:
             score += 5
-            strengths.append("Uses strong action verbs")
+            strengths.append("Uses action verbs")
+        
+        # Check for weak language to avoid
+        weak_phrases = ["i think", "maybe", "possibly", "i guess", "probably", "kind of", "sort of"]
+        weak_count = sum(1 for phrase in weak_phrases if phrase in answer_lower)
+        
+        if weak_count > 0:
+            score -= 5
+            improvements.append("Avoid uncertain language (use confident statements)")
+        
+        # Check for industry-specific keywords based on question
+        tech_keywords = ["python", "javascript", "react", "django", "flask", "sql", "aws", "cloud", "machine learning", "data", "api"]
+        business_keywords = ["revenue", "profit", "sales", "marketing", "customer", "growth", "strategy", "team", "management"]
+        general_keywords = ["experience", "skill", "project", "team", "collaborate", "communicate", "result", "success"]
+        
+        relevant_keywords = []
+        question_lower = question.lower()
+        
+        if any(word in question_lower for word in ["programming", "code", "software", "technical", "development"]):
+            relevant_keywords = [kw for kw in tech_keywords if kw in answer_lower]
+        elif any(word in question_lower for word in ["business", "management", "strategy", "financial"]):
+            relevant_keywords = [kw for kw in business_keywords if kw in answer_lower]
+        else:
+            relevant_keywords = [kw for kw in general_keywords if kw in answer_lower]
+        
+        if len(relevant_keywords) >= 2:
+            score += 10
+            strengths.append("Includes relevant technical/business keywords")
+        
+        # Check for completeness (addresses the question)
+        question_words = set(question_lower.split())
+        answer_word_set = set(answer_words)
+        overlap = len(question_words.intersection(answer_word_set))
+        
+        if overlap >= 3:
+            score += 5
+            strengths.append("Directly addresses the question")
+        
+        # Check for personal pronouns (shows ownership)
+        personal_pronouns = ["i", "my", "we", "our"]
+        personal_count = sum(1 for pronoun in personal_pronouns if pronoun in answer_lower)
+        
+        if personal_count >= 2:
+            score += 5
+            strengths.append("Takes ownership with personal examples")
         
         # Cap score at 100
-        score = min(score, 100)
+        score = max(0, min(score, 100))
         
         # Generate feedback based on score
-        if score >= 80:
-            feedback = "Excellent answer! Well-structured with specific examples."
-        elif score >= 60:
-            feedback = "Good answer. Add more specific examples and metrics to improve."
+        if score >= 85:
+            feedback = "Excellent answer! Well-structured with specific examples and strong results."
+        elif score >= 70:
+            feedback = "Good answer with solid structure. Add more specific metrics for improvement."
+        elif score >= 55:
+            feedback = "Decent answer. Focus on adding more detail and using the STAR method."
         elif score >= 40:
-            feedback = "Decent answer, but needs more structure and detail."
+            feedback = "Basic answer provided. Needs more structure, examples, and metrics."
         else:
-            feedback = "Your answer needs significant improvement. Focus on structure and examples."
+            feedback = "Your answer needs significant improvement. Add detail, structure, and specific examples."
         
         return {
             "score": score,
             "feedback": feedback,
             "strengths": strengths,
-            "improvements": improvements
+            "improvements": improvements[:5],  # Top 5 improvements
+            "word_count": len(answer_words),
+            "star_method_score": star_score
         }
     
     def get_salary_negotiation_scenario(self) -> Dict:
