@@ -24,7 +24,12 @@ _COLUMN_MIGRATIONS = {
         "experience_level": "VARCHAR(50)",
         "total_years_experience": "INTEGER",
         "job_titles": "TEXT",
-        "contact_info": "TEXT"
+        "contact_info": "TEXT",
+        "achievements": "TEXT",
+        "certifications": "TEXT",
+        "projects": "TEXT",
+        "languages": "TEXT",
+        "soft_skills": "TEXT",
     },
     "notifications": {
         "external_job_ids": "TEXT"
