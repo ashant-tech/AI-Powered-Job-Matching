@@ -41,7 +41,7 @@ export default function SalaryNegotiationPage() {
   };
 
   const formatSalary = (salary: number) => {
-    return `${salary.toLocaleString()} ETB`;
+    return `${salary.toLocaleString()} ETB/month`;
   };
 
   const analyzeOffer = async (job: any) => {

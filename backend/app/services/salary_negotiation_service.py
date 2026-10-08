@@ -9,32 +9,36 @@ from app.models.job import ExternalJob
 from app.models.cv import CV
 
 
-# Market salary data by field, experience level, and location (Ethiopia market in ETB)
-# Salaries are annual estimates in Ethiopian Birr (ETB)
+# Market salary data by field, experience level, and location (Ethiopia).
+# Values are MONTHLY GROSS in Ethiopian Birr (ETB) — Ethiopian job postings
+# (EthioJobs, Telegram channels) quote monthly salary, and job.salary_min/max
+# are parsed as monthly, so the market bands must be monthly to compare fairly.
+# Figures are national medians; LOCATION_MULTIPLIERS adjust them per city.
+# These are realistic estimates — tune them as better local data becomes available.
 MARKET_SALARY_DATA = {
     "computer_it": {
-        "entry_level": {"min": 180000, "median": 240000, "max": 360000},  # ~$3,000-$6,000 USD
-        "mid_level": {"min": 360000, "median": 480000, "max": 720000},    # ~$6,000-$12,000 USD
-        "senior_level": {"min": 600000, "median": 840000, "max": 1200000},  # ~$10,000-$20,000 USD
-        "executive_level": {"min": 1200000, "median": 1800000, "max": 3000000}  # ~$20,000-$50,000 USD
+        "entry_level": {"min": 8000, "median": 15000, "max": 25000},
+        "mid_level": {"min": 20000, "median": 35000, "max": 55000},
+        "senior_level": {"min": 45000, "median": 70000, "max": 110000},
+        "executive_level": {"min": 90000, "median": 140000, "max": 220000}
     },
     "engineering": {
-        "entry_level": {"min": 168000, "median": 240000, "max": 360000},
-        "mid_level": {"min": 300000, "median": 420000, "max": 600000},
-        "senior_level": {"min": 540000, "median": 720000, "max": 960000},
-        "executive_level": {"min": 960000, "median": 1440000, "max": 2400000}
+        "entry_level": {"min": 7000, "median": 12000, "max": 20000},
+        "mid_level": {"min": 18000, "median": 30000, "max": 48000},
+        "senior_level": {"min": 40000, "median": 60000, "max": 95000},
+        "executive_level": {"min": 80000, "median": 120000, "max": 190000}
     },
     "health": {
-        "entry_level": {"min": 144000, "median": 216000, "max": 288000},
-        "mid_level": {"min": 264000, "median": 360000, "max": 480000},
-        "senior_level": {"min": 480000, "median": 600000, "max": 840000},
-        "executive_level": {"min": 840000, "median": 1200000, "max": 1800000}
+        "entry_level": {"min": 6000, "median": 10000, "max": 16000},
+        "mid_level": {"min": 12000, "median": 20000, "max": 32000},
+        "senior_level": {"min": 28000, "median": 45000, "max": 70000},
+        "executive_level": {"min": 60000, "median": 90000, "max": 140000}
     },
     "business_finance": {
-        "entry_level": {"min": 156000, "median": 216000, "max": 300000},
-        "mid_level": {"min": 300000, "median": 420000, "max": 600000},
-        "senior_level": {"min": 540000, "median": 720000, "max": 960000},
-        "executive_level": {"min": 960000, "median": 1440000, "max": 2400000}
+        "entry_level": {"min": 7000, "median": 12000, "max": 20000},
+        "mid_level": {"min": 18000, "median": 30000, "max": 48000},
+        "senior_level": {"min": 40000, "median": 60000, "max": 95000},
+        "executive_level": {"min": 80000, "median": 120000, "max": 190000}
     }
 }
 
@@ -114,12 +118,12 @@ class SalaryNegotiationService:
         }
     
     def _generate_market_analysis(self, median_salary: int, level_data: Dict) -> str:
-        """Generate market analysis text."""
-        if median_salary >= 150000:
+        """Generate market analysis text. Thresholds are monthly gross ETB."""
+        if median_salary >= 60000:
             return "High salary range - this is a senior/executive level position with strong compensation"
-        elif median_salary >= 100000:
+        elif median_salary >= 30000:
             return "Above-average salary range - indicates mid-to-senior level position"
-        elif median_salary >= 70000:
+        elif median_salary >= 15000:
             return "Average salary range - typical for mid-level positions"
         else:
             return "Entry-level salary range - common for junior positions"
