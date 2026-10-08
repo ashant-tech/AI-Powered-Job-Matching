@@ -163,6 +163,7 @@ npm test
 
 ## Documentation
 
+- [Changelog](./CHANGELOG.md) — dated summary of shipped changes
 - Interactive API documentation: `http://127.0.0.1:8000/docs` while the backend is running. This generated API reference is the source of truth for current request/response schemas.
 - [Additional API notes](docs/api-documentation.md) (some endpoint examples may not reflect the latest implementation)
 - [System architecture](docs/system-architecture.md)
