@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from app.config.database import get_db
 from app.schemas.match import MatchResponse, MatchUpdate
-from app.services.matching_service import MatchingService
+from app.services.matching_service import MIN_MATCH_SCORE, MatchingService
 from app.services.auth_service import AuthService
 from app.services.career_guidance_service import CareerGuidanceService
 from app.services.resume_analysis_service import ResumeAnalysisService
@@ -33,11 +33,15 @@ async def get_user_stats(current_user = Depends(get_current_user), db: Session =
     """Get real user statistics for dashboard"""
     try:
         # Count total matches for user
-        total_matches = db.query(Match).filter(Match.user_id == current_user.id).count()
+        total_matches = db.query(Match).filter(
+            Match.user_id == current_user.id,
+            Match.match_score >= MIN_MATCH_SCORE,
+        ).count()
         # Pending applications = matches the user hasn't applied to yet (still
         # actionable). Viewing a job doesn't clear it from this funnel.
         pending_applications = db.query(Match).filter(
             Match.user_id == current_user.id,
+            Match.match_score >= MIN_MATCH_SCORE,
             Match.status.in_(["pending", "viewed"])
         ).count()
         # Count unread notifications
@@ -48,6 +52,7 @@ async def get_user_stats(current_user = Depends(get_current_user), db: Session =
         # Viewed jobs = opened the detail; applying implies it was viewed too.
         viewed_jobs = db.query(Match).filter(
             Match.user_id == current_user.id,
+            Match.match_score >= MIN_MATCH_SCORE,
             Match.status.in_(["viewed", "applied"])
         ).count()
         return {
@@ -69,7 +74,8 @@ async def get_recent_activity(current_user = Depends(get_current_user), db: Sess
         ).order_by(desc(Notification.created_at)).limit(5).all()
         # Get recent matches
         recent_matches = db.query(Match).filter(
-            Match.user_id == current_user.id
+            Match.user_id == current_user.id,
+            Match.match_score >= MIN_MATCH_SCORE,
         ).order_by(desc(Match.created_at)).limit(5).all()
         # Combine and format activity
         activities = []

@@ -224,14 +224,13 @@ class SemanticMatcher:
             "title": self._title_keyword_match(cv, job),
         }
 
-        total_weight = 0.0
+        total_weight = sum(self.WEIGHTS.values())
         weighted_sum = 0.0
         for name, value in components.items():
             if value is None:
                 continue
             weight = self.WEIGHTS[name]
             weighted_sum += weight * value
-            total_weight += weight
 
         if total_weight == 0.0:
             return 0.0
@@ -246,14 +245,13 @@ class SemanticMatcher:
             "title": self._title_keyword_match(cv, job),
         }
 
-        total_weight = 0.0
+        total_weight = sum(self.WEIGHTS.values())
         weighted_sum = 0.0
         for name, value in components.items():
             if value is None:
                 continue
             weight = self.WEIGHTS[name]
             weighted_sum += weight * value
-            total_weight += weight
 
         if total_weight == 0.0:
             match_score = 0.0

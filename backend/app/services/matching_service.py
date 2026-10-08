@@ -13,6 +13,10 @@ from app.services.external_job_service import ExternalJobService
 from app.services.field_classifier import field_matches, normalize_department
 from app.services.job_service import JobService
 
+
+MIN_MATCH_SCORE = 45.0
+
+
 class MatchingService:
     def __init__(self, db: Session):
         self.db = db
@@ -57,7 +61,16 @@ class MatchingService:
             ).first()
 
             if existing_match:
+                existing_match.match_score = match_score
+                existing_match.match_reasons = json.dumps({
+                    "score_breakdown": match_score,
+                    "detailed_reasons": match_details["match_reasons"],
+                    "component_scores": match_details["component_scores"]
+                })
                 matches.append(existing_match)
+                continue
+
+            if match_score < MIN_MATCH_SCORE:
                 continue
 
             match = Match(
@@ -100,7 +113,7 @@ class MatchingService:
         # Rank matches
         ranked_matches = filter_low_quality_matches(
             rank_matches(matches),
-            threshold=self.notification_threshold,
+            threshold=MIN_MATCH_SCORE,
         )
 
         # Include job information in response
@@ -158,7 +171,9 @@ class MatchingService:
         return [
             self._response(match, jobs[match.external_job_id])
             for match in matches
-            if match.external_job_id in jobs and field_matches(jobs[match.external_job_id].field, user_field, strict=True)
+            if match.match_score >= MIN_MATCH_SCORE
+            and match.external_job_id in jobs
+            and field_matches(jobs[match.external_job_id].field, user_field, strict=True)
         ]
 
     def get_match(self, match_id: int) -> Match:

@@ -49,3 +49,13 @@ def test_missing_signal_does_not_inflate_score():
     matcher = SemanticMatcher()
     empty = _job("other", "Mystery Role")  # no field match, no skills, no description
     assert matcher.calculate_match_score(_cv(), empty) < 10.0
+
+
+def test_field_match_alone_is_below_recommendation_threshold():
+    from app.services.matching_service import MIN_MATCH_SCORE
+
+    matcher = SemanticMatcher()
+    cv = _cv(skills="[]")
+    job = _job("computer_it", "Office Coordinator")
+
+    assert matcher.calculate_match_score(cv, job) < MIN_MATCH_SCORE

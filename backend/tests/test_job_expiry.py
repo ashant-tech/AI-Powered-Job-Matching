@@ -153,14 +153,19 @@ def test_matching_skips_expired_jobs_and_notifies(db_session, user):
 
 
 def test_find_matches_for_all_users(db_session, user):
-    _seed_job(db_session, "active", 10)
+    job = _seed_job(db_session, "active", 10)
+    job.title = "Python Developer"
+    job.description = "Build Python APIs with Django and SQL."
+    job.skills = '["python", "django", "sql"]'
+    job.field = "computer_it"
     cv = CV(
         user_id=user.id,
         title="CV",
         file_path="/cv.pdf",
         file_name="cv.pdf",
-        parsed_text="Python developer with 3 years of experience",
-        skills='["python"]',
+        parsed_text="Python developer with Django and SQL experience building APIs",
+        skills='["python", "django", "sql"]',
+        field="computer_it",
     )
     db_session.add(cv)
     db_session.commit()
