@@ -22,11 +22,11 @@ class MatchingService:
         self.db = db
         self.semantic_matcher = SemanticMatcher()
         self.external_job_service = ExternalJobService(db)
-        self.notification_threshold = 30.0  # Notify on matches scoring 30% or higher
+        self.notification_threshold = MIN_MATCH_SCORE
 
     def find_matches_for_cv(self, user_id: int, cv_id: int) -> List[MatchResponse]:
         cv = self.db.query(CV).filter(CV.id == cv_id).first()
-        if not cv:
+        if not cv or cv.user_id != user_id:
             raise ValueError("CV not found")
 
         # Drop jobs whose deadline passed (and any matches pointing at them) before scoring
@@ -62,11 +62,7 @@ class MatchingService:
 
             if existing_match:
                 existing_match.match_score = match_score
-                existing_match.match_reasons = json.dumps({
-                    "score_breakdown": match_score,
-                    "detailed_reasons": match_details["match_reasons"],
-                    "component_scores": match_details["component_scores"]
-                })
+                existing_match.match_reasons = self._serialize_match_details(match_details)
                 matches.append(existing_match)
                 continue
 
@@ -78,11 +74,7 @@ class MatchingService:
                 cv_id=cv_id,
                 external_job_id=job.external_id,
                 match_score=match_score,
-                match_reasons=json.dumps({
-                    "score_breakdown": match_score,
-                    "detailed_reasons": match_details["match_reasons"],
-                    "component_scores": match_details["component_scores"]
-                })
+                match_reasons=self._serialize_match_details(match_details)
             )
 
             self.db.add(match)
@@ -130,10 +122,17 @@ class MatchingService:
 
             # Extract detailed reasons from match_reasons
             detailed_reasons = None
+            detail_fields = {}
             if match.match_reasons:
                 try:
                     reasons_data = json.loads(match.match_reasons)
                     detailed_reasons = reasons_data.get("detailed_reasons", [])
+                    detail_fields = {
+                        "fit_level": reasons_data.get("fit_level"),
+                        "score_confidence": reasons_data.get("score_confidence"),
+                        "match_caveats": reasons_data.get("match_caveats"),
+                        "component_scores": reasons_data.get("component_scores"),
+                    }
                 except (json.JSONDecodeError, TypeError):
                     pass
 
@@ -141,6 +140,7 @@ class MatchingService:
             match_dict['job'] = job_info.model_dump() if job_info else None
             match_dict['skill_gaps'] = skill_gaps
             match_dict['detailed_reasons'] = detailed_reasons
+            match_dict.update(detail_fields)
             match_responses.append(MatchResponse(**match_dict))
 
         return match_responses
@@ -210,13 +210,21 @@ class MatchingService:
 
         # Extract detailed reasons from match_reasons
         detailed_reasons = None
+        detail_fields = {}
         if match.match_reasons:
             try:
                 reasons_data = json.loads(match.match_reasons)
                 detailed_reasons = reasons_data.get("detailed_reasons", [])
+                detail_fields = {
+                    "fit_level": reasons_data.get("fit_level"),
+                    "score_confidence": reasons_data.get("score_confidence"),
+                    "match_caveats": reasons_data.get("match_caveats"),
+                    "component_scores": reasons_data.get("component_scores"),
+                }
             except (json.JSONDecodeError, TypeError):
                 pass
         match_dict["detailed_reasons"] = detailed_reasons
+        match_dict.update(detail_fields)
 
         # Calculate skill gaps if job is available
         if job:
@@ -226,3 +234,14 @@ class MatchingService:
                 match_dict["skill_gaps"] = skill_gaps
 
         return MatchResponse(**match_dict)
+
+    @staticmethod
+    def _serialize_match_details(match_details: dict) -> str:
+        return json.dumps({
+            "score_breakdown": match_details["match_score"],
+            "detailed_reasons": match_details["match_reasons"],
+            "component_scores": match_details["component_scores"],
+            "fit_level": match_details["fit_level"],
+            "score_confidence": match_details["score_confidence"],
+            "match_caveats": match_details["match_caveats"],
+        })

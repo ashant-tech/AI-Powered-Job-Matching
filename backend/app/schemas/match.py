@@ -7,6 +7,7 @@ class JobInfo(BaseModel):
     title: str
     company: str
     description: str
+    requirements: Optional[str] = None
     location: Optional[str] = None
     salary_min: Optional[float] = None
     salary_max: Optional[float] = None
@@ -34,6 +35,10 @@ class MatchResponse(MatchBase):
     job: Optional[JobInfo] = None
     skill_gaps: Optional[dict] = None
     detailed_reasons: Optional[list] = None
+    fit_level: Optional[str] = None
+    score_confidence: Optional[float] = None
+    match_caveats: Optional[list[str]] = None
+    component_scores: Optional[dict[str, Optional[float]]] = None
 
     class Config:
         from_attributes = True

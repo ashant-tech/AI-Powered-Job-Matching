@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from app.config.database import get_db
-from app.schemas.cv import CVCreate, CVResponse, CVAnalysis
+from app.schemas.cv import CVProfileUpdate, CVResponse, CVAnalysis
 from app.services.cv_service import CVService
 from app.services.auth_service import AuthService
 from app.middleware.auth import get_current_user
@@ -63,3 +63,20 @@ async def analyze_cv(cv_id: int, current_user = Depends(get_current_user), db: S
         return cv_service.analyze_cv(cv_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.patch("/{cv_id}/profile", response_model=CVResponse)
+async def update_matching_profile(
+    cv_id: int,
+    profile: CVProfileUpdate,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return CVService(db).update_matching_profile(current_user.id, cv_id, profile)
+    except ValueError as exc:
+        error_status = (
+            status.HTTP_404_NOT_FOUND if str(exc) == "CV not found"
+            else status.HTTP_422_UNPROCESSABLE_ENTITY
+        )
+        raise HTTPException(status_code=error_status, detail=str(exc)) from exc

@@ -32,14 +32,17 @@ def _chunk_text(text: str) -> list[str]:
     return chunks
 
 
-def _load_list(raw: str | None) -> list[str]:
+def _load_list(raw: object) -> list[str]:
     """Parse a JSON list of skills (strings or dicts) into lowercase strings."""
     if not raw:
         return []
-    try:
-        data = json.loads(raw)
-    except (json.JSONDecodeError, TypeError):
-        return []
+    if isinstance(raw, str):
+        try:
+            data = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            data = re.split(r"[,;\n]", raw)
+    else:
+        data = raw
     items: list[str] = []
     if isinstance(data, list):
         for entry in data:
@@ -52,8 +55,59 @@ def _load_list(raw: str | None) -> list[str]:
     return [item for item in items if item]
 
 
+def _structured_entries(raw: object) -> list[dict]:
+    if not raw:
+        return []
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    if isinstance(raw, list):
+        return [entry for entry in raw if isinstance(entry, dict)]
+    return []
+
+
 def _tokens(text: str) -> set[str]:
     return {t for t in re.split(r"[^a-z0-9+#.]+", text.lower()) if len(t) > 1}
+
+
+_SKILL_ALIASES = {
+    "js": "javascript",
+    "ecmascript": "javascript",
+    "py": "python",
+    "python3": "python",
+    "reactjs": "react",
+    "react.js": "react",
+    "nodejs": "node.js",
+    "node js": "node.js",
+    "postgres": "postgresql",
+    "k8s": "kubernetes",
+}
+_ROLE_STOP_WORDS = {"and", "at", "for", "of", "the", "with", "senior", "junior", "lead", "principal"}
+_EXPERIENCE_LEVELS = {
+    "intern": 0,
+    "trainee": 0,
+    "entry": 0,
+    "junior": 1,
+    "associate": 1,
+    "mid": 2,
+    "intermediate": 2,
+    "senior": 3,
+    "lead": 4,
+    "principal": 4,
+    "manager": 4,
+    "director": 5,
+}
+
+
+def _canonical_skill(skill: str) -> str:
+    normalized = " ".join(token for token in re.split(r"[^a-z0-9+#.]+", skill.lower()) if token)
+    return _SKILL_ALIASES.get(normalized, normalized)
+
+
+def _role_tokens(title: str) -> set[str]:
+    return _tokens(title) - _ROLE_STOP_WORDS
 
 
 # The embedding model is loaded at most once per process. MatchingService (and
@@ -92,10 +146,13 @@ class SemanticMatcher:
     """
 
     WEIGHTS = {
-        "field": 30.0,
-        "skill": 35.0,
+        "field": 10.0,
+        "skill": 40.0,
         "semantic": 20.0,
-        "title": 15.0,
+        "title": 10.0,
+        "role": 12.0,
+        "experience": 5.0,
+        "education": 3.0,
     }
 
     def __init__(self):
@@ -217,104 +274,109 @@ class SemanticMatcher:
         return float(sim.max(axis=1).mean())
 
     def calculate_match_score(self, cv: CV, job: ExternalJob) -> float:
+        return self.calculate_match_with_details(cv, job)["match_score"]
+
+    def _calculate_components(self, cv: CV, job: ExternalJob) -> dict[str, float | None]:
         components = {
             "field": self._field_alignment(cv, job),
             "skill": self._skill_match(cv, job),
             "semantic": self._semantic_match(cv, job),
             "title": self._title_keyword_match(cv, job),
+            "role": self._role_match(cv, job),
+            "experience": self._experience_match(cv, job),
+            "education": self._education_match(cv, job),
         }
-
-        total_weight = sum(self.WEIGHTS.values())
-        weighted_sum = 0.0
-        for name, value in components.items():
-            if value is None:
-                continue
-            weight = self.WEIGHTS[name]
-            weighted_sum += weight * value
-
-        if total_weight == 0.0:
-            return 0.0
-        return round(100.0 * weighted_sum / total_weight, 2)
+        return components
 
     def calculate_match_with_details(self, cv: CV, job: ExternalJob) -> dict:
         """Calculate match score with detailed reasons and skill gaps."""
-        components = {
-            "field": self._field_alignment(cv, job),
-            "skill": self._skill_match(cv, job),
-            "semantic": self._semantic_match(cv, job),
-            "title": self._title_keyword_match(cv, job),
-        }
+        components = self._calculate_components(cv, job)
 
         total_weight = sum(self.WEIGHTS.values())
-        weighted_sum = 0.0
-        for name, value in components.items():
-            if value is None:
-                continue
-            weight = self.WEIGHTS[name]
-            weighted_sum += weight * value
+        weighted_sum = sum(
+            self.WEIGHTS[name] * value
+            for name, value in components.items()
+            if value is not None
+        )
+        match_score = round(100.0 * weighted_sum / total_weight, 2) if total_weight else 0.0
+        confidence = round(
+            100.0 * sum(self.WEIGHTS[name] for name, value in components.items() if value is not None)
+            / total_weight,
+            2,
+        ) if total_weight else 0.0
 
-        if total_weight == 0.0:
-            match_score = 0.0
-        else:
-            match_score = round(100.0 * weighted_sum / total_weight, 2)
-
-        # Generate detailed match reasons
         match_reasons = self._generate_match_reasons(cv, job, components)
-
-        # Calculate skill gaps
         skill_gaps = self._calculate_skill_gaps(cv, job)
+        if match_score >= 75 and confidence >= 60:
+            fit_level = "Strong"
+        elif match_score >= 55 and confidence >= 40:
+            fit_level = "Good"
+        else:
+            fit_level = "Possible"
+
+        caveats = []
+        if confidence < 40:
+            caveats.append("This estimate is based on limited CV or job details.")
+        if not job.description and not job.requirements:
+            caveats.append("The employer provided little role detail, so this fit may be incomplete.")
 
         return {
             "match_score": match_score,
             "match_reasons": match_reasons,
             "skill_gaps": skill_gaps,
-            "component_scores": {
-                "field": components["field"],
-                "skill": components["skill"],
-                "semantic": components["semantic"],
-                "title": components["title"]
-            }
+            "fit_level": fit_level,
+            "score_confidence": confidence,
+            "match_caveats": caveats,
+            "component_scores": components,
         }
 
     def _generate_match_reasons(self, cv: CV, job: ExternalJob, components: dict) -> list[str]:
-        """Generate human-readable reasons for the match."""
         reasons = []
-
-        # Field alignment reason
         if components["field"] is not None and components["field"] > 0:
             cv_field = getattr(cv, "field", None)
             job_field = getattr(job, "field", None)
             if cv_field and job_field:
-                reasons.append(f"Your field ({cv_field}) matches the job's field ({job_field})")
+                reasons.append(f"Your CV field ({cv_field}) aligns with this job's field ({job_field}).")
 
-        # Skill match reason
-        if components["skill"] is not None:
-            cv_skills = _load_list(cv.skills)
-            job_skills = _load_list(job.skills)
-            if cv_skills and job_skills:
-                matched_skills = self._get_matched_skills(cv_skills, job_skills)
-                if matched_skills:
-                    reasons.append(f"You have {len(matched_skills)} of the required skills: {', '.join(matched_skills[:5])}")
+        cv_skills = _load_list(cv.skills)
+        job_skills = _load_list(job.skills)
+        matched_skills = self._get_matched_skills(cv_skills, job_skills)
+        if job_skills:
+            reasons.append(
+                f"{len(matched_skills)} of {len(job_skills)} skills mentioned by the employer "
+                f"also appear in your CV"
+                + (f": {', '.join(matched_skills[:5])}." if matched_skills else ".")
+            )
 
-        # Semantic match reason
-        if components["semantic"] is not None and components["semantic"] > 0.3:
-            if self.embedding_model:
-                reasons.append("Your CV content shows strong semantic similarity to the job description (using AI embeddings)")
-            else:
-                reasons.append("Your CV content shows strong keyword similarity to the job description")
+        role_titles = self._cv_role_titles(cv)
+        if role_titles and components["role"] is not None and components["role"] > 0:
+            reasons.append(
+                f"Your previous role{'' if len(role_titles) == 1 else 's'} "
+                f"({', '.join(role_titles[:2])}) overlap with this position."
+            )
 
-        # Title match reason
-        if components["title"] is not None and components["title"] > 0.5:
-            reasons.append("Your skills align well with the job title and requirements")
+        if components["experience"] is not None:
+            required_years = self._required_years(job)
+            if required_years is not None:
+                cv_years = getattr(cv, "total_years_experience", None)
+                reasons.append(
+                    f"The job asks for about {required_years}+ years of experience; "
+                    f"your CV lists {cv_years}."
+                )
+            elif self._job_experience_level(job) is not None:
+                reasons.append(
+                    f"Your listed experience level ({cv.experience_level}) is considered "
+                    "alongside this role's seniority."
+                )
 
-        # Experience level match
-        if hasattr(cv, 'experience_level') and cv.experience_level:
-            reasons.append(f"Your experience level ({cv.experience_level}) is relevant for this position")
+        if components["education"] is not None and components["education"] > 0:
+            reasons.append("Your listed education aligns with the education requested in the job.")
 
+        if components["semantic"] is not None and components["semantic"] >= 0.25:
+            reasons.append("Your CV experience and the job description cover related work.")
         return reasons
 
     def _calculate_skill_gaps(self, cv: CV, job: ExternalJob) -> dict:
-        """Calculate missing skills and provide recommendations."""
         cv_skills = _load_list(cv.skills)
         job_skills = _load_list(job.skills)
 
@@ -322,42 +384,31 @@ class SemanticMatcher:
             return {
                 "missing_skills": [],
                 "recommended_skills": [],
-                "gap_percentage": 0
+                "gap_percentage": 0,
+                "matched_skills": [],
             }
 
-        missing_skills = []
-        cv_skills_lower = [skill.lower() for skill in cv_skills]
-
-        for job_skill in job_skills:
-            job_skill_lower = job_skill.lower()
-            # Check if the job skill is in CV skills
-            if not any(job_skill_lower in cv_skill or cv_skill in job_skill_lower
-                      for cv_skill in cv_skills_lower):
-                missing_skills.append(job_skill)
-
-        # Generate skill recommendations based on missing skills
+        matched_skills = self._get_matched_skills(cv_skills, job_skills)
+        matched_canonical = {_canonical_skill(skill) for skill in matched_skills}
+        missing_skills = [
+            skill for skill in job_skills if _canonical_skill(skill) not in matched_canonical
+        ]
         recommended_skills = self._generate_skill_recommendations(missing_skills, cv_skills)
-
         gap_percentage = len(missing_skills) / len(job_skills) * 100 if job_skills else 0
 
         return {
             "missing_skills": missing_skills,
             "recommended_skills": recommended_skills,
-            "gap_percentage": round(gap_percentage, 2)
+            "gap_percentage": round(gap_percentage, 2),
+            "matched_skills": matched_skills,
         }
 
     def _get_matched_skills(self, cv_skills: list[str], job_skills: list[str]) -> list[str]:
-        """Get the list of skills that match between CV and job."""
-        matched = []
-        cv_skills_lower = [skill.lower() for skill in cv_skills]
-
-        for job_skill in job_skills:
-            job_skill_lower = job_skill.lower()
-            if any(job_skill_lower in cv_skill or cv_skill in job_skill_lower
-                  for cv_skill in cv_skills_lower):
-                matched.append(job_skill)
-
-        return matched
+        cv_skill_set = {_canonical_skill(skill) for skill in cv_skills}
+        return [
+            skill for skill in dict.fromkeys(job_skills)
+            if _canonical_skill(skill) in cv_skill_set
+        ]
 
     def _generate_skill_recommendations(self, missing_skills: list[str], cv_skills: list[str]) -> list[str]:
         """Generate recommendations for filling skill gaps."""
@@ -387,6 +438,116 @@ class SemanticMatcher:
 
         return recommendations[:5]  # Limit to top 5 recommendations
 
+    def _cv_role_titles(self, cv: CV) -> list[str]:
+        titles = _load_list(cv.job_titles)
+        titles.extend(
+            str(entry.get("title", "")).strip()
+            for entry in _structured_entries(cv.experience)
+            if entry.get("title")
+            and str(entry["title"]).strip().casefold() not in {"position", "job title", "not specified"}
+        )
+        return list(dict.fromkeys(
+            title for title in titles
+            if title and title.casefold() not in {"position", "job title", "not specified"}
+        ))
+
+    def _role_match(self, cv: CV, job: ExternalJob) -> float | None:
+        cv_titles = self._cv_role_titles(cv)
+        job_title = getattr(job, "title", "") or ""
+        if not cv_titles or not job_title:
+            return None
+
+        job_terms = _role_tokens(job_title)
+        job_family = self._role_family(job_title)
+        similarities = []
+        for cv_title in cv_titles:
+            cv_terms = _role_tokens(cv_title)
+            union = job_terms | cv_terms
+            overlap = len(job_terms & cv_terms) / len(union) if union else 0.0
+            if job_family and job_family == self._role_family(cv_title):
+                overlap = max(overlap, 0.85)
+            similarities.append(overlap)
+        return max(similarities, default=0.0)
+
+    @staticmethod
+    def _role_family(title: str) -> str | None:
+        normalized = title.lower()
+        if any(term in normalized for term in ("software", "developer", "programmer", "web engineer")):
+            return "software development"
+        return None
+
+    def _experience_match(self, cv: CV, job: ExternalJob) -> float | None:
+        required_years = self._required_years(job)
+        cv_years = getattr(cv, "total_years_experience", None)
+        has_role_history = bool(self._cv_role_titles(cv))
+        if required_years is not None and cv_years is not None and (cv_years > 0 or has_role_history):
+            if required_years <= 0:
+                return 1.0
+            return min(max(cv_years, 0) / required_years, 1.0)
+
+        cv_level = self._experience_level(getattr(cv, "experience_level", None))
+        job_level = self._job_experience_level(job)
+        if cv_level == 0 and not has_role_history:
+            cv_level = None
+        if cv_level is None or job_level is None:
+            return None
+        return max(0.0, 1.0 - max(0, job_level - cv_level) * 0.3)
+
+    @staticmethod
+    def _required_years(job: ExternalJob) -> int | None:
+        requirements = getattr(job, "requirements", "") or ""
+        description = getattr(job, "description", "") or ""
+        patterns = (
+            r"\b(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:relevant\s+|professional\s+)?experience\b",
+            r"\bexperience\b.{0,30}?\b(\d{1,2})\s*\+?\s*(?:years?|yrs?)\b",
+        )
+        for text in (requirements, description):
+            for pattern in patterns:
+                matches = re.findall(pattern, text.lower())
+                if matches:
+                    return max(int(value) for value in matches)
+
+        # Some listings use a terse "5+ years" requirement with no noun.
+        terse_requirement = re.search(r"\b(\d{1,2})\s*\+?\s*(?:years?|yrs?)\b", requirements.lower())
+        return int(terse_requirement.group(1)) if terse_requirement else None
+
+    def _job_experience_level(self, job: ExternalJob) -> int | None:
+        title = (getattr(job, "title", "") or "").lower()
+        return self._experience_level(title)
+
+    @staticmethod
+    def _experience_level(value: str | None) -> int | None:
+        if not value:
+            return None
+        normalized = value.lower()
+        for name, level in _EXPERIENCE_LEVELS.items():
+            if name in normalized:
+                return level
+        return None
+
+    def _education_match(self, cv: CV, job: ExternalJob) -> float | None:
+        job_text = f"{getattr(job, 'title', '') or ''} {getattr(job, 'requirements', '') or ''} {getattr(job, 'description', '') or ''}".lower()
+        degree_terms = {
+            "bachelor", "bachelors", "b.sc", "b.a", "master", "masters", "m.sc",
+            "m.a", "phd", "doctorate", "diploma", "degree", "mba", "associate",
+        }
+        requested_terms = {term for term in degree_terms if term in job_text}
+        if not requested_terms:
+            return None
+
+        education = _structured_entries(cv.education)
+        if not education:
+            return None
+        cv_education = " ".join(
+            str(value) for entry in education for value in entry.values()
+        ).lower()
+        matching_terms = {term for term in requested_terms if term in cv_education}
+        if matching_terms:
+            return 1.0
+        if any(term in cv_education for term in ("bachelor", "bachelors", "b.sc", "degree")):
+            return 0.5
+        return 0.0
+
     def _field_alignment(self, cv: CV, job: ExternalJob) -> float | None:
         """Reward jobs whose auto-detected field matches the CV's field."""
         cv_field = getattr(cv, "field", None)
@@ -398,28 +559,22 @@ class SemanticMatcher:
         return 1.0 if cv_field == job_field else 0.0
 
     def _skill_match(self, cv: CV, job: ExternalJob) -> float | None:
-        cv_skills = _load_list(cv.skills)
-        job_skills = _load_list(job.skills)
+        cv_skills = list({_canonical_skill(skill) for skill in _load_list(cv.skills)})
+        job_skills = list({_canonical_skill(skill) for skill in _load_list(job.skills)})
         if not cv_skills or not job_skills:
             return None
-        cv_text_tokens = set().union(*(_tokens(s) for s in cv_skills)) if cv_skills else set()
-        hits = 0
-        for job_skill in job_skills:
-            job_skill_tokens = _tokens(job_skill)
-            # Count a job skill as covered if it is an exact CV skill or shares a token.
-            if job_skill in cv_skills or (job_skill_tokens & cv_text_tokens):
-                hits += 1
-        return hits / len(job_skills)
+        return len(set(cv_skills) & set(job_skills)) / len(job_skills)
 
     def _semantic_match(self, cv: CV, job: ExternalJob) -> float | None:
         """Semantic similarity using sentence embeddings (not just word overlap)."""
-        if not cv.parsed_text or not job.description:
+        if not cv.parsed_text or not (job.description or job.requirements):
             return None
+        job_text = f"{job.description or ''} {job.requirements or ''}"
         
         # Try to use embeddings for true semantic matching
         if self.embedding_model is not None:
             try:
-                similarity = self._chunked_similarity(cv.parsed_text, job.description)
+                similarity = self._chunked_similarity(cv.parsed_text, job_text)
                 if similarity is not None:
                     return similarity
             except Exception as e:
@@ -427,7 +582,7 @@ class SemanticMatcher:
         
         # Fallback to enhanced word overlap with synonyms
         cv_words = _tokens(cv.parsed_text)
-        job_words = _tokens(job.description)
+        job_words = _tokens(job_text)
         if not cv_words or not job_words:
             return None
         
@@ -458,7 +613,7 @@ class SemanticMatcher:
         haystack_tokens = _tokens(haystack)
         matched = 0
         for skill in cv_skills:
-            skill_tokens = _tokens(skill)
-            if skill in haystack or (skill_tokens and skill_tokens <= haystack_tokens):
+            skill_tokens = _tokens(_canonical_skill(skill))
+            if skill_tokens and skill_tokens <= haystack_tokens:
                 matched += 1
         return matched / len(cv_skills)

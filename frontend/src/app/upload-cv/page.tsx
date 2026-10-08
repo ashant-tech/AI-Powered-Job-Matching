@@ -4,6 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FIELD_LABELS } from '../../services/jobApi';
 
+function parseList(value?: string): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return value.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean);
+  }
+}
+
 export default function UploadCVPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -11,6 +21,12 @@ export default function UploadCVPage() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
   const [cvs, setCvs] = useState<any[]>([]);
+  const [editSkills, setEditSkills] = useState('');
+  const [editField, setEditField] = useState('other');
+  const [editExperienceLevel, setEditExperienceLevel] = useState('');
+  const [editYears, setEditYears] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -43,10 +59,68 @@ export default function UploadCVPage() {
         if (cvsResponse.ok) {
           const cvsData = await cvsResponse.json();
           setCvs(cvsData);
+          const cv = cvsData[0];
+          if (cv) {
+            setEditSkills(parseList(cv.skills).join(', '));
+            setEditField(cv.field || 'other');
+            setEditExperienceLevel(cv.experience_level === 'Not specified' ? '' : cv.experience_level || '');
+            setEditYears(cv.total_years_experience === null || cv.total_years_experience === undefined
+              ? ''
+              : String(cv.total_years_experience));
+          }
         }
       }
     } catch (error) {
       console.error('Error fetching CVs:', error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    const cv = cvs[0];
+    const token = localStorage.getItem('token');
+    if (!cv || !token) return;
+
+    setSavingProfile(true);
+    setProfileMessage('');
+    try {
+      const response = await fetch(`/api/cv/${cv.id}/profile`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          skills: editSkills.split(/[,;\n]/).map((skill) => skill.trim()).filter(Boolean),
+          field: editField,
+          experience_level: editExperienceLevel || null,
+          total_years_experience: editYears === '' ? null : Number(editYears),
+        }),
+      });
+      if (!response.ok) {
+        const errorBody = await response.text();
+        let errorMessage = `Could not save CV profile (HTTP ${response.status})`;
+        try {
+          const errorData = JSON.parse(errorBody);
+          if (typeof errorData.detail === 'string') errorMessage = errorData.detail;
+        } catch {}
+        throw new Error(errorMessage);
+      }
+
+      await response.json();
+      const matchingResponse = await fetch(`/api/matching/cv/${cv.id}`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!matchingResponse.ok) {
+        const errorBody = await matchingResponse.text();
+        throw new Error(`Profile saved, but matches could not be refreshed (HTTP ${matchingResponse.status}): ${errorBody}`);
+      }
+      await fetchCVs();
+      setProfileMessage('Profile updated and your matches were refreshed.');
+    } catch (error) {
+      setProfileMessage(error instanceof Error ? error.message : 'Could not update your CV profile.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -221,6 +295,77 @@ export default function UploadCVPage() {
           </form>
         </div>
 
+        {cvs[0] && (
+          <section className="mb-6 rounded-lg bg-white p-6 shadow-md">
+            <h3 className="text-xl font-bold text-gray-900">Review your matching profile</h3>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              CV extraction can miss details. Correct these fields to improve your personalized job matches.
+            </p>
+            {profileMessage && (
+              <p role="status" className={`mt-4 rounded-lg p-3 text-sm ${profileMessage.includes('updated') ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900'}`}>
+                {profileMessage}
+              </p>
+            )}
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-gray-700">
+                Main work field
+                <select
+                  value={editField}
+                  onChange={(event) => setEditField(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5"
+                >
+                  {Object.entries(FIELD_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Experience level
+                <select
+                  value={editExperienceLevel}
+                  onChange={(event) => setEditExperienceLevel(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5"
+                >
+                  <option value="">Not specified</option>
+                  <option value="Entry Level">Entry level</option>
+                  <option value="Junior">Junior</option>
+                  <option value="Mid-Level">Mid-level</option>
+                  <option value="Senior">Senior</option>
+                </select>
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Years of experience
+                <input
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={editYears}
+                  onChange={(event) => setEditYears(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700 sm:col-span-2">
+                Skills (separate with commas)
+                <textarea
+                  value={editSkills}
+                  onChange={(event) => setEditSkills(event.target.value)}
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5"
+                  placeholder="Python, project management, accounting"
+                />
+              </label>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveProfile}
+              disabled={savingProfile}
+              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {savingProfile ? 'Saving and refreshing matches...' : 'Save profile and refresh matches'}
+            </button>
+          </section>
+        )}
+
         {/* Existing CVs */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-xl font-bold mb-4">Your CV</h3>
@@ -261,16 +406,16 @@ export default function UploadCVPage() {
                           <div>
                             <span className="text-sm text-gray-600">Skills extracted: </span>
                             <span className="text-sm font-medium text-gray-800">
-                              {JSON.parse(cv.skills).length}
+                              {parseList(cv.skills).length}
                             </span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {JSON.parse(cv.skills).slice(0, 5).map((skill: string, index: number) => (
+                              {parseList(cv.skills).slice(0, 5).map((skill: string, index: number) => (
                                 <span key={index} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs">
                                   {skill}
                                 </span>
                               ))}
-                              {JSON.parse(cv.skills).length > 5 && (
-                                <span className="text-xs text-gray-500">+{JSON.parse(cv.skills).length - 5} more</span>
+                              {parseList(cv.skills).length > 5 && (
+                                <span className="text-xs text-gray-500">+{parseList(cv.skills).length - 5} more</span>
                               )}
                             </div>
                           </div>
@@ -280,7 +425,7 @@ export default function UploadCVPage() {
                           <div>
                             <span className="text-sm text-gray-600">Job Titles: </span>
                             <span className="text-sm font-medium text-gray-800">
-                              {JSON.parse(cv.job_titles).join(', ') || 'Not specified'}
+                              {parseList(cv.job_titles).join(', ') || 'Not specified'}
                             </span>
                           </div>
                         )}

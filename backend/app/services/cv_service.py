@@ -5,14 +5,14 @@ import json
 
 from app.models.cv import CV
 from app.models.match import Match
-from app.schemas.cv import CVCreate, CVAnalysis
+from app.schemas.cv import CVAnalysis, CVProfileUpdate
 from app.config.settings import settings
 from app.cv_processing.pdf_parser import parse_pdf
 from app.cv_processing.docx_parser import parse_docx
 from app.cv_processing.text_cleaner import clean_text
 from app.ai.cv_analyzer import analyze_cv_text
 from app.ai.skill_extractor import extract_skills
-from app.services.field_classifier import classify_cv
+from app.services.field_classifier import FIELDS, classify_cv
 from app.services.matching_service import MatchingService
 
 class CVService:
@@ -86,6 +86,34 @@ class CVService:
 
     def get_user_cvs(self, user_id: int) -> list[CV]:
         return self.db.query(CV).filter(CV.user_id == user_id).all()
+
+    def update_matching_profile(self, user_id: int, cv_id: int, profile: CVProfileUpdate) -> CV:
+        cv = self.db.query(CV).filter(CV.id == cv_id, CV.user_id == user_id).first()
+        if not cv:
+            raise ValueError("CV not found")
+
+        updates = profile.model_dump(exclude_unset=True)
+        field = updates.get("field")
+        if "field" in updates and field is not None and field not in {*FIELDS, "other"}:
+            raise ValueError("Invalid CV field")
+        if "skills" in updates:
+            skills = updates["skills"] or []
+            normalized_skills = {}
+            for skill in skills:
+                cleaned_skill = skill.strip()
+                if cleaned_skill:
+                    normalized_skills.setdefault(cleaned_skill.casefold(), cleaned_skill)
+            cv.skills = json.dumps(sorted(normalized_skills.values(), key=str.casefold))
+        if "field" in updates:
+            cv.field = field
+        if "experience_level" in updates:
+            cv.experience_level = updates["experience_level"]
+        if "total_years_experience" in updates:
+            cv.total_years_experience = updates["total_years_experience"]
+
+        self.db.commit()
+        self.db.refresh(cv)
+        return cv
 
     def analyze_cv(self, cv_id: int) -> CVAnalysis:
         cv = self.get_cv(cv_id)

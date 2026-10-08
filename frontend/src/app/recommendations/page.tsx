@@ -3,10 +3,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { matchingApi } from '../../services/matchingApi';
+import { Match } from '../../types/Match';
+
+function parseList(value?: string): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return value.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean);
+  }
+}
 
 export default function RecommendationsPage() {
   const router = useRouter();
-  const [matches, setMatches] = useState<any[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCV, setSelectedCV] = useState<number | null>(null);
@@ -242,13 +253,13 @@ export default function RecommendationsPage() {
                       <div className="sm:col-span-2">
                         <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Key skills</span>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {JSON.parse(cvAnalysis.skills).slice(0, 8).map((skill: string, index: number) => (
+                          {parseList(cvAnalysis.skills).slice(0, 8).map((skill: string, index: number) => (
                             <span key={index} className="rounded-lg border border-indigo-100 bg-white px-2.5 py-1.5 text-xs font-medium text-indigo-800">
                               {skill}
                             </span>
                           ))}
-                          {JSON.parse(cvAnalysis.skills).length > 8 && (
-                            <span className="self-center text-xs text-slate-500">+{JSON.parse(cvAnalysis.skills).length - 8} more</span>
+                          {parseList(cvAnalysis.skills).length > 8 && (
+                            <span className="self-center text-xs text-slate-500">+{parseList(cvAnalysis.skills).length - 8} more</span>
                           )}
                         </div>
                       </div>
@@ -310,7 +321,7 @@ export default function RecommendationsPage() {
             <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
               <div>
                 <h2 className="text-xl font-semibold text-slate-950">Best matches</h2>
-                <p className="mt-1 text-sm text-slate-500">{matches.length} opportunities, sorted by match score</p>
+                <p className="mt-1 text-sm text-slate-500">{matches.length} opportunities, ranked by CV fit signals—not a prediction of hiring outcomes.</p>
               </div>
             </div>
             {matches.map((match) => (
@@ -321,7 +332,7 @@ export default function RecommendationsPage() {
                       <h3 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">{match.job?.title || 'Job no longer available'}</h3>
                       <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                         <span className={`h-2 w-2 rounded-full ${getMatchScoreColor(match.match_score)}`} />
-                        {match.match_score}% match
+                        {match.fit_level || 'Possible'} fit · {Math.round(match.match_score)}%
                       </span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
@@ -358,6 +369,11 @@ export default function RecommendationsPage() {
                         style={{ width: `${Math.min(100, Math.max(0, Number(match.match_score) || 0))}%` }}
                       />
                     </div>
+                    {match.score_confidence !== undefined && (
+                      <p className="mt-2 text-xs text-slate-500">
+                        Estimate uses {Math.round(match.score_confidence)}% of the CV and job signals available.
+                      </p>
+                    )}
 
                     {/* Detailed Match Reasons */}
                     {match.detailed_reasons && match.detailed_reasons.length > 0 && (
@@ -375,6 +391,11 @@ export default function RecommendationsPage() {
                         </ul>
                       </div>
                     )}
+                    {match.match_caveats?.map((caveat, index) => (
+                      <p key={index} className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                        {caveat}
+                      </p>
+                    ))}
 
                     {/* Expandable Details */}
                     {expandedMatch === match.id && (
@@ -383,10 +404,10 @@ export default function RecommendationsPage() {
                         {match.skill_gaps && match.skill_gaps.missing_skills && match.skill_gaps.missing_skills.length > 0 && (
                           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                             <div className="mb-2 text-sm font-semibold text-amber-900">
-                              Skill Gaps ({match.skill_gaps.gap_percentage}%):
+                              Skills mentioned in the job but not found in your CV
                             </div>
                             <div className="mb-2 text-sm leading-6 text-amber-900/80">
-                              Missing skills: {match.skill_gaps.missing_skills.join(', ')}
+                              These are signals to review, not confirmed requirements: {match.skill_gaps.missing_skills.join(', ')}
                             </div>
                             {match.skill_gaps.recommended_skills && match.skill_gaps.recommended_skills.length > 0 && (
                               <div className="text-sm text-amber-900/80">

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
@@ -38,3 +38,10 @@ class CVAnalysis(BaseModel):
     total_years_experience: Optional[int] = None
     job_titles: Optional[list] = None
     contact_info: Optional[dict] = None
+
+
+class CVProfileUpdate(BaseModel):
+    skills: Optional[list[str]] = Field(default=None, max_length=100)
+    field: Optional[str] = None
+    experience_level: Optional[str] = None
+    total_years_experience: Optional[int] = Field(default=None, ge=0, le=60)

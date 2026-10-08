@@ -59,3 +59,80 @@ def test_field_match_alone_is_below_recommendation_threshold():
     job = _job("computer_it", "Office Coordinator")
 
     assert matcher.calculate_match_score(cv, job) < MIN_MATCH_SCORE
+
+
+def test_skill_matching_requires_a_real_skill_match_not_a_shared_word():
+    matcher = SemanticMatcher()
+    cv = _cv(skills='["machine"]')
+    job = _job("computer_it", "Machine Learning Engineer", skills='["machine learning"]')
+
+    assert matcher._skill_match(cv, job) == 0.0
+
+
+def test_skill_matching_normalizes_common_aliases():
+    matcher = SemanticMatcher()
+    cv = _cv(skills='["js", "python3"]')
+    job = _job("computer_it", "Developer", skills='["javascript", "python"]')
+
+    assert matcher._skill_match(cv, job) == 1.0
+
+
+def test_match_details_use_cv_roles_and_explicit_experience_requirements():
+    matcher = SemanticMatcher()
+    cv = _cv(skills='["python", "sql"]')
+    cv.job_titles = '["Software Developer"]'
+    cv.experience = '[{"title": "Software Developer"}]'
+    cv.total_years_experience = 2
+    job = _job(
+        "computer_it",
+        "Senior Software Engineer",
+        skills='["python", "sql", "aws"]',
+        description="Build and maintain software applications using Python and SQL.",
+        requirements="At least 5 years of experience.",
+    )
+
+    details = matcher.calculate_match_with_details(cv, job)
+
+    assert details["component_scores"]["role"] >= 0.8
+    assert details["component_scores"]["experience"] == 0.4
+    assert details["score_confidence"] > 80
+    assert any("2 of 3 skills" in reason for reason in details["match_reasons"])
+    assert any("asks for about 5+ years" in reason for reason in details["match_reasons"])
+
+
+def test_experience_reason_is_not_claimed_without_job_level_evidence():
+    matcher = SemanticMatcher()
+    cv = _cv()
+    cv.experience_level = "Senior"
+    job = _job("computer_it", "Software Developer", description="Build software applications.")
+
+    details = matcher.calculate_match_with_details(cv, job)
+
+    assert details["component_scores"]["experience"] is None
+    assert not any("experience level" in reason.lower() for reason in details["match_reasons"])
+
+
+def test_company_tenure_is_not_mistaken_for_candidate_experience_requirement():
+    matcher = SemanticMatcher()
+    cv = _cv()
+    cv.total_years_experience = 0
+    cv.experience_level = "Entry Level"
+    job = _job(
+        "computer_it",
+        "Senior Software Developer",
+        description="Our company has operated for 20 years.",
+    )
+
+    assert matcher._required_years(job) is None
+    assert matcher._experience_match(cv, job) is None
+
+
+def test_placeholder_cv_experience_does_not_count_as_confirmed_work_history():
+    matcher = SemanticMatcher()
+    cv = _cv()
+    cv.total_years_experience = 0
+    cv.experience_level = "Entry Level"
+    cv.experience = '[{"title": "Position", "years": "Not specified"}]'
+    job = _job("computer_it", "Developer", requirements="3 years of experience required.")
+
+    assert matcher._experience_match(cv, job) is None
