@@ -12,6 +12,7 @@ export default function JobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [searchError, setSearchError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [locationFilter, setLocationFilter] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('');
   const [fieldFilter, setFieldFilter] = useState('');
@@ -103,6 +104,7 @@ export default function JobsPage() {
     jobTypeFilter,
     locationFilter,
     remoteOnly,
+    refreshKey,
     salaryMax,
     salaryMin,
     token,
@@ -149,23 +151,31 @@ export default function JobsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold text-indigo-600">AI Job Matching</Link>
-          <nav aria-label="Main navigation" className="flex items-center gap-4">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-3 text-slate-900">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <rect x="3" y="7" width="18" height="13" rx="2.5" />
+                <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7M3 12h18m-11 0v2h4v-2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className="text-base font-bold tracking-tight sm:text-lg">AI Job Matching</span>
+          </Link>
+          <nav aria-label="Main navigation" className="flex items-center gap-2 sm:gap-4">
             {token ? (
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-gray-600 hover:text-gray-900"
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
               >
-                Back to Dashboard
+                Dashboard
               </button>
             ) : (
               <>
-                <Link href="/login" className="text-gray-600 hover:text-gray-900">Sign In</Link>
-                <Link href="/register" className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">Create Account</Link>
+                <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Sign in</Link>
+                <Link href="/register" className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">Create account</Link>
               </>
             )}
           </nav>
@@ -173,27 +183,46 @@ export default function JobsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="mb-7">
+          <p className="text-sm font-semibold text-indigo-600">Explore opportunities</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Find your next opportunity</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+            Search current listings by role, location, and field. Sign in to see recommendations tailored to your profile.
+          </p>
+        </div>
+
         {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="mb-7 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           {token && (
-            <div className="mb-4">
+            <div className="mb-5 flex flex-col gap-3 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="font-semibold text-slate-900">Personalized search</h2>
+                <p className="mt-1 text-sm text-slate-500">Use your profile to find roles that fit your skills.</p>
+              </div>
               <button
                 onClick={() => setForYou(!forYou)}
-                className={`px-4 py-2 rounded-lg font-semibold transition ${
+                className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-indigo-500/15 ${
                   forYou
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                    ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
+                    : 'border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
                 }`}
               >
-                ✨ For You (by your department & skills)
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M12 3.5 14.6 9l5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8L12 3.5Z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {forYou ? 'Showing jobs for you' : 'Show jobs for you'}
               </button>
             </div>
           )}
 
           {/* Basic Filters */}
-          <div className="grid md:grid-cols-5 gap-4 mb-4">
-            <div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.35fr_1fr_1fr_1fr_auto]">
+            <div className="relative">
+              <svg viewBox="0 0 24 24" fill="none" className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.8" />
+                <path d="m16 16 4 4" strokeLinecap="round" />
+              </svg>
               <input
                 type="text"
                 placeholder="Search jobs..."
@@ -203,7 +232,8 @@ export default function JobsPage() {
                   if (e.key === 'Enter') handleSearch();
                 }}
                 disabled={forYou}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
+                aria-label="Search jobs"
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100"
               />
             </div>
             <div>
@@ -213,7 +243,8 @@ export default function JobsPage() {
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
                 disabled={forYou}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
+                aria-label="Filter by location"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100"
               />
             </div>
             <div>
@@ -221,7 +252,8 @@ export default function JobsPage() {
                 value={jobTypeFilter}
                 onChange={(e) => setJobTypeFilter(e.target.value)}
                 disabled={forYou}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
+                aria-label="Filter by job type"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition hover:border-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100"
               >
                 <option value="">All Job Types</option>
                 <option value="full-time">Full-time</option>
@@ -234,11 +266,11 @@ export default function JobsPage() {
               <select
                 value={fieldFilter}
                 onChange={(e) => {
-                  console.log('Field filter changed to:', e.target.value);
                   setFieldFilter(e.target.value);
                 }}
                 disabled={forYou}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
+                aria-label="Filter by field"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition hover:border-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100"
               >
                 <option value="">All Fields</option>
                 {Object.entries(FIELD_LABELS).map(([value, label]) => (
@@ -246,39 +278,43 @@ export default function JobsPage() {
                 ))}
               </select>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 md:col-span-2 xl:col-span-1">
               <button
                 onClick={handleSearch}
                 disabled={forYou}
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition disabled:bg-gray-300"
+                className="flex-1 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 Search
               </button>
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                 disabled={forYou}
-                className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:bg-gray-100"
+                aria-expanded={showAdvancedFilters}
+                aria-label={showAdvancedFilters ? 'Hide advanced filters' : 'Show advanced filters'}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
-                {showAdvancedFilters ? '▼' : '▶'}
+                <svg viewBox="0 0 20 20" fill="none" className={`h-4 w-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
             </div>
           </div>
 
           {/* Advanced Filters */}
           {showAdvancedFilters && (
-            <div className="border-t pt-4 mt-4">
-              <div className="grid md:grid-cols-4 gap-4">
+            <div className="mt-5 border-t border-slate-100 pt-5">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {/* Remote Toggle */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5">
                   <input
                     type="checkbox"
                     id="remote-only"
                     checked={remoteOnly}
                     onChange={(e) => setRemoteOnly(e.target.checked)}
                     disabled={forYou}
-                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 disabled:bg-gray-100"
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:bg-slate-100"
                   />
-                  <label htmlFor="remote-only" className="text-sm font-medium text-gray-700 disabled:text-gray-400">
+                  <label htmlFor="remote-only" className="text-sm font-medium text-slate-700">
                     Remote Only
                   </label>
                 </div>
@@ -292,7 +328,7 @@ export default function JobsPage() {
                       value={salaryMin}
                       onChange={(e) => setSalaryMin(e.target.value)}
                       disabled={forYou}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-sm"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100"
                     />
                   </div>
                   <div className="flex-1">
@@ -302,7 +338,7 @@ export default function JobsPage() {
                       value={salaryMax}
                       onChange={(e) => setSalaryMax(e.target.value)}
                       disabled={forYou}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-sm"
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100"
                     />
                   </div>
                 </div>
@@ -313,7 +349,7 @@ export default function JobsPage() {
                     value={deadlineDays}
                     onChange={(e) => setDeadlineDays(e.target.value)}
                     disabled={forYou}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 text-sm"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:bg-slate-100"
                   >
                     <option value="">Any Deadline</option>
                     <option value="1">Closing within 1 day</option>
@@ -328,7 +364,7 @@ export default function JobsPage() {
                 <button
                   onClick={clearFilters}
                   disabled={forYou || getActiveFiltersCount() === 0}
-                  className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition disabled:bg-gray-100 disabled:text-gray-400 text-sm font-semibold"
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                 >
                   Clear All Filters
                 </button>
@@ -338,57 +374,58 @@ export default function JobsPage() {
               {getActiveFiltersCount() > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {appliedSearchTerm && (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
                       Search: {appliedSearchTerm}
                       <button
                         onClick={() => {
                           setSearchTerm('');
                           setAppliedSearchTerm('');
                         }}
-                        className="hover:text-indigo-600"
+                        aria-label="Remove search filter"
+                        className="font-semibold hover:text-indigo-600"
                       >×</button>
                     </span>
                   )}
                   {locationFilter && (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
                       Location: {locationFilter}
-                      <button onClick={() => setLocationFilter('')} className="hover:text-indigo-600">×</button>
+                      <button onClick={() => setLocationFilter('')} aria-label="Remove location filter" className="font-semibold hover:text-indigo-600">×</button>
                     </span>
                   )}
                   {jobTypeFilter && (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
                       Type: {jobTypeFilter}
-                      <button onClick={() => setJobTypeFilter('')} className="hover:text-indigo-600">×</button>
+                      <button onClick={() => setJobTypeFilter('')} aria-label="Remove job type filter" className="font-semibold hover:text-indigo-600">×</button>
                     </span>
                   )}
                   {fieldFilter && FIELD_LABELS[fieldFilter] && (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
                       Field: {FIELD_LABELS[fieldFilter]}
-                      <button onClick={() => setFieldFilter('')} className="hover:text-indigo-600">×</button>
+                      <button onClick={() => setFieldFilter('')} aria-label="Remove field filter" className="font-semibold hover:text-indigo-600">×</button>
                     </span>
                   )}
                   {remoteOnly && (
-                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-sm text-emerald-800">
                       Remote Only
-                      <button onClick={() => setRemoteOnly(false)} className="hover:text-green-600">×</button>
+                      <button onClick={() => setRemoteOnly(false)} aria-label="Remove remote-only filter" className="font-semibold hover:text-emerald-600">×</button>
                     </span>
                   )}
                   {salaryMin && (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
                       Min: {formatSalary(parseInt(salaryMin))}
-                      <button onClick={() => setSalaryMin('')} className="hover:text-indigo-600">×</button>
+                      <button onClick={() => setSalaryMin('')} aria-label="Remove minimum salary filter" className="font-semibold hover:text-indigo-600">×</button>
                     </span>
                   )}
                   {salaryMax && (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
                       Max: {formatSalary(parseInt(salaryMax))}
-                      <button onClick={() => setSalaryMax('')} className="hover:text-indigo-600">×</button>
+                      <button onClick={() => setSalaryMax('')} aria-label="Remove maximum salary filter" className="font-semibold hover:text-indigo-600">×</button>
                     </span>
                   )}
                   {deadlineDays && (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-sm text-indigo-800">
                       Deadline: ≤{deadlineDays} days
-                      <button onClick={() => setDeadlineDays('')} className="hover:text-indigo-600">×</button>
+                      <button onClick={() => setDeadlineDays('')} aria-label="Remove deadline filter" className="font-semibold hover:text-indigo-600">×</button>
                     </span>
                   )}
                 </div>
@@ -399,28 +436,53 @@ export default function JobsPage() {
 
         {/* Results Info */}
         {!loading && (
-          <div className="mb-4 text-sm text-gray-600">
-            {jobs.length} job{jobs.length !== 1 ? 's' : ''} found
-            {getActiveFiltersCount() > 0 && ` with ${getActiveFiltersCount()} active filter${getActiveFiltersCount() !== 1 ? 's' : ''}`}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-slate-600">
+              <span className="font-semibold text-slate-900">{jobs.length}</span> job{jobs.length !== 1 ? 's' : ''} found
+              {getActiveFiltersCount() > 0 && ` · ${getActiveFiltersCount()} active filter${getActiveFiltersCount() !== 1 ? 's' : ''}`}
+            </p>
+            {forYou && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M12 3.5 14.6 9l5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8L12 3.5Z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Personalized for you
+              </span>
+            )}
           </div>
         )}
 
         {/* Jobs List */}
         {loading ? (
-          <div className="text-center py-8">
-            <div className="text-xl">Loading jobs...</div>
+          <div role="status" className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+            <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-indigo-50">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+            </span>
+            <p className="mt-4 font-semibold text-slate-900">Finding opportunities</p>
+            <p className="mt-1 text-sm text-slate-500">This should only take a moment.</p>
           </div>
         ) : searchError ? (
-          <div role="alert" className="bg-red-50 text-red-700 rounded-lg p-4">
-            {searchError}
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm leading-6 text-red-800">
+            <p className="font-semibold">We couldn’t load the jobs</p>
+            <p className="mt-1">{searchError}</p>
+            <button onClick={() => setRefreshKey((key) => key + 1)} className="mt-3 rounded-lg bg-white px-3 py-2 font-semibold text-red-800 shadow-sm ring-1 ring-red-200 transition hover:bg-red-100">
+              Try again
+            </button>
           </div>
         ) : jobs.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <div className="text-gray-600 mb-4">No jobs found matching your criteria</div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+              <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.8" />
+                <path d="m16 16 4 4M8 10.8h5.6" strokeLinecap="round" />
+              </svg>
+            </span>
+            <h2 className="mt-4 text-lg font-semibold text-slate-900">No jobs found</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Try adjusting your search or removing a filter to see more opportunities.</p>
             {getActiveFiltersCount() > 0 && (
               <button
                 onClick={clearFilters}
-                className="text-indigo-600 hover:underline"
+                className="mt-5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
               >
                 Clear filters and try again
               </button>
@@ -429,47 +491,65 @@ export default function JobsPage() {
         ) : (
           <div className="space-y-4">
             {jobs.map((job) => (
-              <div key={job.external_id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{job.title}</h3>
-                    <p className="text-indigo-600 font-semibold mb-2">{job.company}</p>
-                    <div className="flex gap-4 text-sm text-gray-600 mb-3">
+              <article key={job.external_id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-6">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">{job.title}</h2>
                       {job.field && job.field !== 'other' && FIELD_LABELS[job.field] && (
-                        <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold">
+                        <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
                           {FIELD_LABELS[job.field]}
                         </span>
                       )}
+                    </div>
+                    <p className="mt-1.5 font-medium text-slate-700">{job.company}</p>
+                    <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
                       {job.location && (
-                        <span className="flex items-center gap-1">
-                          📍 {job.location}
+                        <span className="flex items-center gap-1.5">
+                          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-slate-400" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                            <path d="M16 8.3c0 4.2-6 9-6 9s-6-4.8-6-9a6 6 0 1 1 12 0Z" />
+                            <circle cx="10" cy="8" r="2" />
+                          </svg>
+                          {job.location}
                         </span>
                       )}
                       {job.job_type && (
-                        <span className="flex items-center gap-1">
-                          💼 {job.job_type}
+                        <span className="flex items-center gap-1.5 capitalize">
+                          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-slate-400" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                            <rect x="2.5" y="6" width="15" height="11" rx="2" />
+                            <path d="M7 6V4.5A1.5 1.5 0 0 1 8.5 3h3A1.5 1.5 0 0 1 13 4.5V6M2.5 10.5h15m-9 0V12h3v-1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          {job.job_type}
                         </span>
                       )}
                       {job.salary_min && job.salary_max && (
-                        <span className="flex items-center gap-1">
-                          💰 {formatSalary(job.salary_min)} - {formatSalary(job.salary_max)}
+                        <span className="flex items-center gap-1.5">
+                          <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 text-slate-400" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                            <circle cx="10" cy="10" r="7.5" />
+                            <path d="M12.5 7.5c-.5-.6-1.3-.9-2.4-.9-1.2 0-2 .6-2 1.5 0 2.3 4.8.8 4.8 3.3 0 1-.9 1.8-2.4 1.8-1.1 0-2.1-.4-2.7-1.1M10 5.2v1.4m0 6.7v1.5" strokeLinecap="round" />
+                          </svg>
+                          {formatSalary(job.salary_min)} - {formatSalary(job.salary_max)}
                         </span>
                       )}
                       {job.deadline && (
-                        <span className={`flex items-center gap-1 ${getDeadlineDisplay(job.deadline).urgent ? 'text-red-600 font-semibold' : ''}`}>
-                          ⏳ {getDeadlineDisplay(job.deadline).text}
+                        <span className={`flex items-center gap-1.5 ${getDeadlineDisplay(job.deadline).urgent ? 'font-semibold text-rose-700' : 'text-slate-600'}`}>
+                          <svg viewBox="0 0 20 20" fill="none" className={`h-4 w-4 ${getDeadlineDisplay(job.deadline).urgent ? 'text-rose-500' : 'text-slate-400'}`} stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                            <circle cx="10" cy="10" r="7.5" />
+                            <path d="M10 5.5v4.8l3 1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          {getDeadlineDisplay(job.deadline).text}
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 line-clamp-2 mb-3">
+                    <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-600">
                       {job.description}
                     </p>
                     {job.skills && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="mt-4 flex flex-wrap gap-2">
                         {JSON.parse(job.skills).slice(0, 5).map((skill: string, index: number) => (
                           <span
                             key={index}
-                            className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm"
+                            className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700"
                           >
                             {skill}
                           </span>
@@ -481,12 +561,15 @@ export default function JobsPage() {
                     href={job.apply_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition ml-4"
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 sm:ml-4"
                   >
                     Apply
+                    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M7 4h9v9m0-9-9 9m-2-5v8h8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </a>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}

@@ -111,203 +111,222 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div role="status" className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-600 shadow-sm">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+          Loading your dashboard...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-indigo-600">AI Job Matching</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600">Welcome, {user?.full_name || user?.username}</span>
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-3 text-slate-900">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <rect x="3" y="7" width="18" height="13" rx="2.5" />
+                <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7M3 12h18m-11 0v2h4v-2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className="text-base font-bold tracking-tight sm:text-lg">AI Job Matching</span>
+          </Link>
+          <nav aria-label="Dashboard navigation" className="flex items-center gap-2 sm:gap-3">
+            <Link href="/jobs" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 sm:inline-flex">Browse jobs</Link>
+            <Link href="/profile" aria-label="Profile" className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-sm font-bold text-indigo-700 ring-1 ring-indigo-100 transition hover:bg-indigo-100">
+              {(user?.full_name || user?.username || 'U').slice(0, 1).toUpperCase()}
+            </Link>
             <button
               onClick={handleLogout}
-              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
             >
-              Logout
+              Sign out
             </button>
-          </div>
+          </nav>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Live indicator */}
-        <div className="flex items-center justify-end gap-2 mb-3 text-xs text-gray-500">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-          </span>
-          <span>
-            Live{lastUpdated ? ` · updated ${lastUpdated.toLocaleTimeString()}` : ''}
-          </span>
-        </div>
+      <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
+        <section className="relative mb-7 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-indigo-800 px-6 py-8 text-white shadow-lg shadow-indigo-950/10 sm:px-8 sm:py-10">
+          <div aria-hidden="true" className="absolute -right-16 -top-28 h-72 w-72 rounded-full border-[32px] border-white/[0.06]" />
+          <div className="relative flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-indigo-200">Your career workspace</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+                Welcome{user?.full_name || user?.username ? `, ${user.full_name || user.username}` : ' back'}
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-indigo-100/80 sm:text-base">
+                Keep track of your matches, explore new roles, and take your next career step.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href="/recommendations" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-indigo-900 transition hover:bg-indigo-50">
+                View my matches
+                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="M4 10h12m-5-5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
+              <Link href="/jobs" className="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.14]">
+                Browse jobs
+              </Link>
+            </div>
+          </div>
+        </section>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="text-3xl font-bold text-indigo-600">{stats.totalMatches}</div>
-            <div className="text-gray-600 mt-2">Total Matches</div>
+        <div className="mb-9">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Your activity</h2>
+              <p className="mt-1 text-sm text-slate-500">A quick overview of your job search.</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+              </span>
+              Updated{lastUpdated ? ` ${lastUpdated.toLocaleTimeString()}` : ' just now'}
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="text-3xl font-bold text-green-600">{stats.pendingApplications}</div>
-            <div className="text-gray-600 mt-2">Pending Applications</div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="text-3xl font-bold text-blue-600">{stats.viewedJobs}</div>
-            <div className="text-gray-600 mt-2">Viewed Jobs</div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="text-3xl font-bold text-orange-600">{stats.unreadNotifications}</div>
-            <div className="text-gray-600 mt-2">Unread Notifications</div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { label: 'Job matches', value: stats.totalMatches, tone: 'indigo', icon: 'M12 3.5 14.6 9l5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8L12 3.5Z' },
+              { label: 'To review', value: stats.pendingApplications, tone: 'amber', icon: 'M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z' },
+              { label: 'Viewed jobs', value: stats.viewedJobs, tone: 'sky', icon: 'M2.5 10s2.7-5 7.5-5 7.5 5 7.5 5-2.7 5-7.5 5-7.5-5-7.5-5Z' },
+              { label: 'Notifications', value: stats.unreadNotifications, tone: 'rose', icon: 'M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 0 0-5-5.9V4a1 1 0 0 0-2 0v1.1A6 6 0 0 0 6 11v3.2a2 2 0 0 1-.6 1.4L4 17h5m2 0v1a2 2 0 0 0 4 0v-1' },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                    <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{stat.value}</p>
+                  </div>
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                    stat.tone === 'indigo' ? 'bg-indigo-50 text-indigo-600' :
+                    stat.tone === 'amber' ? 'bg-amber-50 text-amber-600' :
+                    stat.tone === 'sky' ? 'bg-sky-50 text-sky-600' :
+                    'bg-rose-50 text-rose-600'
+                  }`}>
+                    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                      <path d={stat.icon} strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Link
-              href="/upload-cv"
-              className="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-lg hover:bg-indigo-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">📄</div>
-              <div className="font-semibold">Upload CV</div>
-              <div className="text-sm text-gray-600">Add or update your CV</div>
-            </Link>
-            <Link
-              href="/recommendations"
-              className="bg-green-50 border-2 border-green-200 p-4 rounded-lg hover:bg-green-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🎯</div>
-              <div className="font-semibold">View Matches</div>
-              <div className="text-sm text-gray-600">See your job matches</div>
-            </Link>
-            <Link
-              href="/jobs"
-              className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg hover:bg-blue-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🔍</div>
-              <div className="font-semibold">Browse Jobs</div>
-              <div className="text-sm text-gray-600">Search all available jobs</div>
-            </Link>
-            <Link
-              href="/career-guidance"
-              className="bg-purple-50 border-2 border-purple-200 p-4 rounded-lg hover:bg-purple-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🚀</div>
-              <div className="font-semibold">Career Guidance</div>
-              <div className="text-sm text-gray-600">Plan your career path</div>
-            </Link>
-            <Link
-              href="/resume-analysis"
-              className="bg-orange-50 border-2 border-orange-200 p-4 rounded-lg hover:bg-orange-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">📝</div>
-              <div className="font-semibold">Resume Analysis</div>
-              <div className="text-sm text-gray-600">Optimize your resume</div>
-            </Link>
-            <Link
-              href="/notifications"
-              className="bg-red-50 border-2 border-red-200 p-4 rounded-lg hover:bg-red-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🔔</div>
-              <div className="font-semibold">Notifications</div>
-              <div className="text-sm text-gray-600">Check your alerts</div>
-            </Link>
+        <section className="mb-9">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Your job search</h2>
+            <p className="mt-1 text-sm text-slate-500">The tools you need to move forward.</p>
           </div>
-        </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              { href: '/upload-cv', title: 'Upload your CV', desc: 'Add or update your experience', tone: 'indigo', icon: 'M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z M14 4v4h4M9 13h6M9 16h4' },
+              { href: '/recommendations', title: 'Review job matches', desc: 'See roles selected for your profile', tone: 'emerald', icon: 'M12 3.5 14.6 9l5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8L12 3.5Z' },
+              { href: '/jobs', title: 'Browse all jobs', desc: 'Search every available listing', tone: 'sky', icon: 'M10.8 17.6a6.8 6.8 0 1 0 0-13.6 6.8 6.8 0 0 0 0 13.6ZM16 16l4 4' },
+              { href: '/career-guidance', title: 'Career guidance', desc: 'Explore your next career step', tone: 'violet', icon: 'M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1M7.7 7.7 5.6 5.6M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z' },
+              { href: '/resume-analysis', title: 'Improve your resume', desc: 'Get feedback on your CV', tone: 'amber', icon: 'M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z M14 4v4h4M9 13h6M9 16h6' },
+              { href: '/notifications', title: 'Notifications', desc: 'Check important updates', tone: 'rose', icon: 'M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 0 0-5-5.9V4a1 1 0 0 0-2 0v1.1A6 6 0 0 0 6 11v3.2a2 2 0 0 1-.6 1.4L4 17h5m2 0v1a2 2 0 0 0 4 0v-1' },
+            ].map((action) => (
+              <Link key={action.href} href={action.href} className="group flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md sm:p-5">
+                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
+                  action.tone === 'indigo' ? 'bg-indigo-50 text-indigo-600' :
+                  action.tone === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
+                  action.tone === 'sky' ? 'bg-sky-50 text-sky-600' :
+                  action.tone === 'violet' ? 'bg-violet-50 text-violet-600' :
+                  action.tone === 'amber' ? 'bg-amber-50 text-amber-600' :
+                  'bg-rose-50 text-rose-600'
+                }`}>
+                  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                    <path d={action.icon} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-slate-900">{action.title}</span>
+                  <span className="mt-1 block text-sm text-slate-500">{action.desc}</span>
+                </span>
+                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-indigo-600" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path d="m7 4 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
+            ))}
+          </div>
+        </section>
 
         {/* AI-Powered Features */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">AI-Powered Features</h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <Link
-              href="/interview-prep"
-              className="bg-teal-50 border-2 border-teal-200 p-4 rounded-lg hover:bg-teal-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🎤</div>
-              <div className="font-semibold">Interview Prep</div>
-              <div className="text-sm text-gray-600">Practice with AI questions</div>
-            </Link>
-            <Link
-              href="/career-transition"
-              className="bg-pink-50 border-2 border-pink-200 p-4 rounded-lg hover:bg-pink-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🔄</div>
-              <div className="font-semibold">Career Transition</div>
-              <div className="text-sm text-gray-600">Explore new career paths</div>
-            </Link>
-            <Link
-              href="/learning-hub"
-              className="bg-cyan-50 border-2 border-cyan-200 p-4 rounded-lg hover:bg-cyan-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">📚</div>
-              <div className="font-semibold">Learning Hub</div>
-              <div className="text-sm text-gray-600">Personalized learning plans</div>
-            </Link>
-            <Link
-              href="/salary-negotiation"
-              className="bg-yellow-50 border-2 border-yellow-200 p-4 rounded-lg hover:bg-yellow-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">💰</div>
-              <div className="font-semibold">Salary Negotiation</div>
-              <div className="text-sm text-gray-600">Market analysis & scripts</div>
-            </Link>
-            <Link
-              href="/network-analysis"
-              className="bg-lime-50 border-2 border-lime-200 p-4 rounded-lg hover:bg-lime-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🤝</div>
-              <div className="font-semibold">Network Analysis</div>
-              <div className="text-sm text-gray-600">Professional networking tips</div>
-            </Link>
-            <Link
-              href="/culture-match"
-              className="bg-rose-50 border-2 border-rose-200 p-4 rounded-lg hover:bg-rose-100 transition text-center"
-            >
-              <div className="text-2xl mb-2">🏢</div>
-              <div className="font-semibold">Culture Match</div>
-              <div className="text-sm text-gray-600">Find your ideal work environment</div>
-            </Link>
+        <section className="mb-9 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-5">
+            <p className="text-sm font-semibold text-indigo-600">More ways to grow</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">Career tools</h2>
+            <p className="mt-1 text-sm text-slate-500">Explore additional resources for your next move.</p>
           </div>
-        </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { href: '/interview-prep', title: 'Interview preparation', desc: 'Practice common interview questions' },
+              { href: '/career-transition', title: 'Career transition', desc: 'Explore a change in direction' },
+              { href: '/learning-hub', title: 'Learning hub', desc: 'Plan skills you want to develop' },
+              { href: '/salary-negotiation', title: 'Salary negotiation', desc: 'Prepare for compensation talks' },
+              { href: '/network-analysis', title: 'Network insights', desc: 'Build your professional network' },
+              { href: '/culture-match', title: 'Workplace preferences', desc: 'Reflect on your ideal work culture' },
+            ].map((tool) => (
+              <Link key={tool.href} href={tool.href} className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 transition hover:border-indigo-200 hover:bg-indigo-50/50">
+                <span className="font-semibold text-slate-800">{tool.title}</span>
+                <span className="mt-1 block text-sm leading-5 text-slate-500">{tool.desc}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-          <div className="space-y-4">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Recent activity</h2>
+              <p className="mt-1 text-sm text-slate-500">Updates from your job search.</p>
+            </div>
+            <Link href="/notifications" className="text-sm font-semibold text-indigo-700 transition hover:text-indigo-900">View notifications</Link>
+          </div>
+          <div className="mt-5 divide-y divide-slate-100">
             {recentActivity.length > 0 ? (
               recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 rounded">
-                  {activity.type === 'notification' ? (
-                    <div className="text-orange-500">📝</div>
-                  ) : (
-                    <div className="text-green-500">✓</div>
-                  )}
-                  <div>
-                    <div className="font-medium">{activity.title}</div>
-                    <div className="text-sm text-gray-600">
-                      {activity.message || activity.company}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {new Date(activity.time).toLocaleString()}
-                    </div>
+                <div key={index} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
+                  <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    activity.type === 'notification' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                  }`}>
+                    {activity.type === 'notification' ? (
+                      <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                        <path d="M15 14h3l-1-1a1.5 1.5 0 0 1-.5-1.1V9.5a4.5 4.5 0 0 0-9 0v2.4A1.5 1.5 0 0 1 7 13l-1 1h3m2 0v.5a1.5 1.5 0 0 0 3 0V14" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                        <path d="m4 10 4 4 8-8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-900">{activity.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{activity.message || activity.company}</p>
+                    <p className="mt-1 text-xs text-slate-400">{new Date(activity.time).toLocaleString()}</p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-gray-500 text-center py-4">
-                No recent activity
+              <div className="rounded-xl bg-slate-50 px-4 py-8 text-center">
+                <p className="font-medium text-slate-700">No recent activity yet</p>
+                <p className="mt-1 text-sm text-slate-500">Your matches and updates will appear here.</p>
+                <Link href="/jobs" className="mt-4 inline-flex text-sm font-semibold text-indigo-700 hover:text-indigo-900">Browse jobs</Link>
               </div>
             )}
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );
