@@ -56,6 +56,28 @@ def _tokens(text: str) -> set[str]:
     return {t for t in re.split(r"[^a-z0-9+#.]+", text.lower()) if len(t) > 1}
 
 
+# The embedding model is loaded at most once per process. MatchingService (and
+# therefore SemanticMatcher) is constructed per request, so an instance-level
+# load would re-import torch on every request and exhaust memory on small hosts
+# like Render's free tier - which surfaces as health-check timeouts.
+_SHARED_MODEL = None
+_SHARED_MODEL_TRIED = False
+
+
+def _get_shared_embedding_model():
+    global _SHARED_MODEL, _SHARED_MODEL_TRIED
+    if _SHARED_MODEL_TRIED:
+        return _SHARED_MODEL
+    _SHARED_MODEL_TRIED = True
+    try:
+        from sentence_transformers import SentenceTransformer
+        _SHARED_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
+    except Exception as exc:
+        print(f"Warning: embedding model unavailable ({exc}); falling back to synonym word overlap")
+        _SHARED_MODEL = None
+    return _SHARED_MODEL
+
+
 class SemanticMatcher:
     """CV↔job relevance scorer using actual semantic similarity (embeddings).
 
@@ -72,20 +94,9 @@ class SemanticMatcher:
     }
 
     def __init__(self):
-        self.embedding_model = None
         self.synonym_map = {}
-        self._load_embedding_model()
-
-    def _load_embedding_model(self):
-        """Load sentence-transformers model for semantic embeddings."""
-        try:
-            from sentence_transformers import SentenceTransformer
-            # Use a lightweight model suitable for production
-            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        except ImportError:
-            # Fall back to enhanced word overlap with synonyms if sentence-transformers not available
-            print("Warning: sentence-transformers not installed, using enhanced word overlap with synonyms")
-            self.embedding_model = None
+        self.embedding_model = _get_shared_embedding_model()
+        if self.embedding_model is None:
             self._build_synonym_map()
 
     def _build_synonym_map(self):
