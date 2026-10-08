@@ -9,6 +9,8 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [searchError, setSearchError] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('');
   const [fieldFilter, setFieldFilter] = useState('');
@@ -52,55 +54,64 @@ export default function JobsPage() {
   };
 
   useEffect(() => {
-    setLoading(true);
-    fetchJobs();
-  }, [forYou, fieldFilter, remoteOnly, salaryMin, salaryMax, deadlineDays]);
+    const controller = new AbortController();
+    const fetchJobs = async () => {
+      setLoading(true);
+      setSearchError('');
+      try {
+        if (forYou && token) {
+          const recommended = await jobApi.getRecommendedJobs(token, 50, controller.signal);
+          setJobs(recommended);
+          return;
+        }
 
-  const fetchJobs = async () => {
-    try {
-      if (forYou && token) {
-        const recommended = await jobApi.getRecommendedJobs(token);
-        setJobs(recommended);
-        return;
+        const params = new URLSearchParams();
+        if (appliedSearchTerm.trim()) params.set('search', appliedSearchTerm.trim());
+        if (locationFilter.trim()) params.set('location', locationFilter.trim());
+        if (jobTypeFilter) params.set('job_type', jobTypeFilter);
+        if (fieldFilter) params.set('field', fieldFilter);
+        if (remoteOnly) params.set('remote_only', 'true');
+        if (salaryMin) params.set('salary_min', salaryMin);
+        if (salaryMax) params.set('salary_max', salaryMax);
+        if (deadlineDays) params.set('deadline_days', deadlineDays);
+
+        const query = params.toString();
+        const response = await fetch(`/api/jobs/${query ? `?${query}` : ''}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error('Could not load jobs. Please try again.');
+        }
+        setJobs(await response.json());
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setJobs([]);
+        setSearchError(error instanceof Error ? error.message : 'Could not load jobs. Please try again.');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
+    };
 
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (locationFilter) params.append('location', locationFilter);
-      if (jobTypeFilter) params.append('job_type', jobTypeFilter);
-      if (fieldFilter) params.append('field', fieldFilter);
-      if (remoteOnly) params.append('remote_only', 'true');
-      if (salaryMin) params.append('salary_min', salaryMin);
-      if (salaryMax) params.append('salary_max', salaryMax);
-      if (deadlineDays) params.append('deadline_days', deadlineDays);
-
-      console.log('Fetching jobs with params:', params.toString());
-
-      const response = await fetch(`/api/jobs?${params.toString()}`);
-
-      console.log('Response status:', response.status);
-
-      if (response.ok) {
-        const jobsData = await response.json();
-        console.log('Jobs received:', jobsData.length);
-        setJobs(jobsData);
-      } else {
-        console.error('Failed to fetch jobs:', response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSearch = () => {
-    setLoading(true);
     fetchJobs();
-  };
+    return () => controller.abort();
+  }, [
+    appliedSearchTerm,
+    deadlineDays,
+    fieldFilter,
+    forYou,
+    jobTypeFilter,
+    locationFilter,
+    remoteOnly,
+    salaryMax,
+    salaryMin,
+    token,
+  ]);
+
+  const handleSearch = () => setAppliedSearchTerm(searchTerm);
 
   const clearFilters = () => {
     setSearchTerm('');
+    setAppliedSearchTerm('');
     setLocationFilter('');
     setJobTypeFilter('');
     setFieldFilter('');
@@ -109,8 +120,6 @@ export default function JobsPage() {
     setSalaryMax('');
     setDeadlineDays('');
     setForYou(false);
-    setLoading(true);
-    fetchJobs();
   };
 
   const formatSalary = (salary: number) => {
@@ -127,7 +136,7 @@ export default function JobsPage() {
 
   const getActiveFiltersCount = () => {
     let count = 0;
-    if (searchTerm) count++;
+    if (appliedSearchTerm) count++;
     if (locationFilter) count++;
     if (jobTypeFilter) count++;
     if (fieldFilter) count++;
@@ -180,6 +189,9 @@ export default function JobsPage() {
                 placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSearch();
+                }}
                 disabled={forYou}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
               />
@@ -315,10 +327,16 @@ export default function JobsPage() {
               {/* Active Filters Display */}
               {getActiveFiltersCount() > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {searchTerm && (
+                  {appliedSearchTerm && (
                     <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                      Search: {searchTerm}
-                      <button onClick={() => setSearchTerm('')} className="hover:text-indigo-600">×</button>
+                      Search: {appliedSearchTerm}
+                      <button
+                        onClick={() => {
+                          setSearchTerm('');
+                          setAppliedSearchTerm('');
+                        }}
+                        className="hover:text-indigo-600"
+                      >×</button>
                     </span>
                   )}
                   {locationFilter && (
@@ -381,6 +399,10 @@ export default function JobsPage() {
         {loading ? (
           <div className="text-center py-8">
             <div className="text-xl">Loading jobs...</div>
+          </div>
+        ) : searchError ? (
+          <div role="alert" className="bg-red-50 text-red-700 rounded-lg p-4">
+            {searchError}
           </div>
         ) : jobs.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">

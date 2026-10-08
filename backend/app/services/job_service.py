@@ -36,28 +36,30 @@ def _parse_skills(skills_json: Optional[str]) -> set:
 
 
 def _token_relevance(token: str, job: ExternalJob) -> float:
-    """Weight of one search token against a job, or 0.0 if it matches nowhere.
-    Title beats skills beats company beats description. Tokens of 4+ chars may
-    match inside a word; shorter tokens must match on a word boundary so 'it'
-    does not hit 'required'/'abilities' in nearly every posting."""
-    word_re = re.compile(r"\b" + re.escape(token) + r"\b")
-    allow_substring = len(token) >= 4
+    """Score a token against whole words, allowing long query prefixes for inflections."""
     best = 0.0
     for text, weight in (
-        (job.title or "", 5.0),
-        (job.skills or "", 3.0),
-        (job.company or "", 2.0),
+        (job.title or "", 8.0),
+        (job.skills or "", 6.0),
+        (job.company or "", 4.0),
+        (job.location or "", 3.0),
+        (job.field or "", 3.0),
+        (job.job_type or "", 2.0),
+        (job.requirements or "", 2.0),
         (job.description or "", 1.0),
     ):
-        low = text.lower()
-        if word_re.search(low) or (allow_substring and token in low):
+        words = re.findall(r"[^\W_]+", text.lower())
+        if any(word == token or (len(token) >= 5 and word.startswith(token)) for word in words):
             best = max(best, weight)
     return best
 
 
 def _search_relevance(job: ExternalJob, tokens: List[str]) -> float:
-    """Total relevance across all query tokens. Returns 0.0 if ANY token is
-    unmatched, so results only contain jobs relevant to the whole query."""
+    """Require every meaningful query term and prioritize title/skill matches."""
+    stop_words = {"a", "an", "and", "at", "for", "in", "jobs", "of", "on", "the", "to", "with"}
+    tokens = [token for token in tokens if token not in stop_words]
+    if not tokens:
+        return 1.0
     total = 0.0
     for token in tokens:
         score = _token_relevance(token, job)
@@ -90,7 +92,7 @@ class JobService:
         jobs = ExternalJobService(self.db).fetch_jobs()
 
         if search:
-            tokens = [t for t in re.split(r"\s+", search.lower().strip()) if t]
+            tokens = re.findall(r"[^\W_]+", search.lower())
             if tokens:
                 scored = [(_search_relevance(job, tokens), job) for job in jobs]
                 scored = [pair for pair in scored if pair[0] > 0.0]

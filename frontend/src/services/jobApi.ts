@@ -51,11 +51,12 @@ export const jobApi = {
     return response.json();
   },
 
-  async getRecommendedJobs(token: string, limit = 50) {
+  async getRecommendedJobs(token: string, limit = 50, signal?: AbortSignal) {
     const response = await fetch(`${API_BASE_URL}/jobs/recommended?limit=${limit}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+      signal,
     });
 
     if (!response.ok) {
