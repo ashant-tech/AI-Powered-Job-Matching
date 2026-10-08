@@ -14,13 +14,17 @@ from app.services.field_classifier import classify_job, field_matches, normalize
 
 
 def backfill_job_fields(db: Session) -> int:
-    """Classify jobs that don't have a field yet. Returns rows updated."""
-    jobs = db.query(ExternalJob).filter(ExternalJob.field.is_(None)).all()
+    """Classify or reclassify jobs when the field-classification rules change."""
+    jobs = db.query(ExternalJob).all()
+    updated = 0
     for job in jobs:
-        job.field = classify_job(job.title, job.description or "", job.skills or "", job.requirements or "")
-    if jobs:
+        field = classify_job(job.title, job.description or "", job.skills or "", job.requirements or "")
+        if job.field != field:
+            job.field = field
+            updated += 1
+    if updated:
         db.commit()
-    return len(jobs)
+    return updated
 
 
 def _parse_skills(skills_json: Optional[str]) -> set:

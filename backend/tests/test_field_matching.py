@@ -40,6 +40,19 @@ def test_classify_job_other_fields():
     assert classify_job("Grade 5 Teacher", "school curriculum delivery") == "education"
 
 
+def test_classify_job_uses_the_role_not_incidental_computer_skills():
+    assert classify_job(
+        "Assistant Registrar Head for TVET Program",
+        "Manages student academic records and supports student registration.",
+        '["education", "it, computer science and software engineering", "leadership"]',
+    ) == "education"
+    assert classify_job(
+        "District Multi Sectoral Program Coordinator",
+        "Oversees project activities and submits financial and narrative reports.",
+        "[]",
+    ) == "business_finance"
+
+
 def test_normalize_department():
     assert normalize_department("Computer Science") == "computer_it"
     assert normalize_department("Software Engineering") == "computer_it"

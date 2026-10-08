@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from app.config.database import Base
 from app.models.job import ExternalJob
 from app.services.external_job_service import ExternalJobService, upsert_jobs
+from app.services.job_service import backfill_job_fields
 
 
 @pytest.fixture
@@ -117,3 +118,21 @@ def test_fetch_jobs_returns_only_active_jobs(db_session):
 
     jobs = ExternalJobService(db_session).fetch_jobs()
     assert [job.external_id for job in jobs] == ["active"]
+
+
+def test_backfill_reclassifies_existing_incorrect_fields(db_session):
+    db_session.add(ExternalJob(
+        external_id="stale-field-classification",
+        title="Assistant Registrar Head for TVET Program",
+        company="Example College",
+        description="Manages student academic records and supports registration.",
+        skills='["education", "it, computer science and software engineering"]',
+        field="computer_it",
+    ))
+    db_session.commit()
+
+    assert backfill_job_fields(db_session) == 1
+    assert db_session.query(ExternalJob).filter_by(
+        external_id="stale-field-classification"
+    ).one().field == "education"
+    assert backfill_job_fields(db_session) == 0

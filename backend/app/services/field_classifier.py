@@ -64,13 +64,14 @@ FIELD_KEYWORDS: dict[str, tuple[str, ...]] = {
         "export", "import", "warehouse", "storekeeper", "secretary",
         "executive assistant", "office assistant", "receptionist",
         "customer service", "call center", "business development",
-        "project manager", "program manager", "operations",
+        "project manager", "program manager", "program coordinator",
+        "coordinator", "operations",
     ),
     "education": (
         "teacher", "teaching", "education", "educator", "school",
         "lecturer", "academic", "curriculum", "tutor", "instructor",
         "kindergarten", "pedagog", "student", "university", "college",
-        "librarian", "library",
+        "librarian", "library", "registrar", "tvet", "academic records",
     ),
     "law": (
         "lawyer", "legal", "law", "attorney", "judiciary", "judge",
@@ -135,10 +136,11 @@ _COMPUTER_SIGNAL_TOKENS = {
     "programming", "programmer", "developer", "data",
 }
 
-# Per-section hit weights: titles are decisive, skills strong, description weak
-# (long postings mention many unrelated keywords).
+# Titles are the strongest evidence. Extracted skills can contain broad
+# qualifications (for example, "Computer Science" on a registrar vacancy),
+# so they should not outweigh the actual role.
 _TITLE_WEIGHT = 5.0
-_SKILLS_WEIGHT = 3.0
+_SKILLS_WEIGHT = 1.5
 _TEXT_WEIGHT = 1.0
 
 
