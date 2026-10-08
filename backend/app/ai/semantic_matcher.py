@@ -1,7 +1,35 @@
+import hashlib
 import json
 import re
 from app.models.cv import CV
 from app.models.job import ExternalJob
+
+# Embedding models like all-MiniLM-L6-v2 truncate input at 256 word-piece
+# tokens, so a full multi-page CV is silently cut off. Chunking keeps every
+# part in play; ~120 words stays safely under the token cap.
+_CHUNK_WORDS = 120
+_CHUNK_OVERLAP = 20
+_MAX_CHUNKS = 16
+
+# Re-encoding the same CV/job text for every candidate pair dominates the cost
+# of matching all users against all jobs, so cache normalized chunk embeddings.
+_EMBED_CACHE: dict[str, object] = {}
+_EMBED_CACHE_MAX = 512
+
+
+def _chunk_text(text: str) -> list[str]:
+    words = text.split()
+    if not words:
+        return []
+    if len(words) <= _CHUNK_WORDS:
+        return [text]
+    chunks: list[str] = []
+    step = _CHUNK_WORDS - _CHUNK_OVERLAP
+    for start in range(0, len(words), step):
+        chunks.append(" ".join(words[start:start + _CHUNK_WORDS]))
+        if len(chunks) >= _MAX_CHUNKS or start + _CHUNK_WORDS >= len(words):
+            break
+    return chunks
 
 
 def _load_list(raw: str | None) -> list[str]:
@@ -137,6 +165,40 @@ class SemanticMatcher:
         except ImportError:
             # Fallback if numpy not available
             return 0.0
+
+    def _embed_chunks(self, text: str):
+        """Return L2-normalized embeddings for each chunk of text (cached)."""
+        key = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        cached = _EMBED_CACHE.get(key)
+        if cached is not None:
+            return cached
+        import numpy as np
+        chunks = _chunk_text(text)
+        if not chunks:
+            return None
+        vectors = np.asarray(self.embedding_model.encode(chunks), dtype=float)
+        if vectors.ndim == 1:
+            vectors = vectors.reshape(1, -1)
+        norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+        norms[norms == 0.0] = 1e-8
+        vectors = vectors / norms
+        if len(_EMBED_CACHE) >= _EMBED_CACHE_MAX:
+            _EMBED_CACHE.clear()
+        _EMBED_CACHE[key] = vectors
+        return vectors
+
+    def _chunked_similarity(self, cv_text: str, job_text: str) -> float | None:
+        """Mean over job chunks of the best-matching CV chunk (cosine).
+
+        Scoring the job description segment-by-segment beats a single
+        whole-text cosine, which the model's token cap would truncate anyway.
+        """
+        cv_vectors = self._embed_chunks(cv_text)
+        job_vectors = self._embed_chunks(job_text)
+        if cv_vectors is None or job_vectors is None:
+            return None
+        sim = job_vectors @ cv_vectors.T  # (n_job, n_cv)
+        return float(sim.max(axis=1).mean())
 
     def calculate_match_score(self, cv: CV, job: ExternalJob) -> float:
         components = {
@@ -343,12 +405,8 @@ class SemanticMatcher:
         # Try to use embeddings for true semantic matching
         if self.embedding_model is not None:
             try:
-                # Get embeddings for CV text and job description
-                cv_embedding = self._get_embedding(cv.parsed_text)
-                job_embedding = self._get_embedding(job.description)
-                
-                if cv_embedding is not None and job_embedding is not None:
-                    similarity = self._cosine_similarity(cv_embedding, job_embedding)
+                similarity = self._chunked_similarity(cv.parsed_text, job.description)
+                if similarity is not None:
                     return similarity
             except Exception as e:
                 print(f"Error in semantic matching: {e}")

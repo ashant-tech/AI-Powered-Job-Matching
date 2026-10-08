@@ -225,7 +225,7 @@ class SalaryNegotiationService:
         elif competitiveness == "fair":
             return "Fair offer slightly below market. Consider negotiating salary or better benefits."
         elif competitiveness == "below_market":
-            return f"Offer below market rate by ${int(market_median - job_salary):,}. Strong negotiation recommended."
+            return f"Offer below market rate by ETB {int(market_median - job_salary):,}. Strong negotiation recommended."
         else:
             return "Salary not specified. Request market rate information during interview process."
     
@@ -237,7 +237,7 @@ class SalaryNegotiationService:
         script_components = {
             "opening": f"Thank you for the offer for the {job.title} position at {job.company}. I'm very excited about the opportunity to join your team.",
             "value_proposition": self._generate_value_proposition(user_strengths),
-            "salary_request": f"Based on my research of market rates for similar positions and considering my experience and skills, I was hoping for a salary in the ${target_salary:,} range.",
+            "salary_request": f"Based on my research of market rates for similar positions and considering my experience and skills, I was hoping for a salary in the ETB {target_salary:,} range.",
             "flexibility": "I'm flexible depending on the total compensation package and growth opportunities within the role.",
             "benefits_interest": "I'd also like to discuss the benefits package, particularly healthcare coverage, retirement matching, and professional development opportunities.",
             "timeline": "When would you be able to get back to me with a revised offer?",
