@@ -1,363 +1,179 @@
 # AI Job Matching System
 
-An intelligent job matching platform that uses artificial intelligence to connect job seekers with relevant opportunities based on their skills, experience, and preferences.
+An Ethiopia-focused job discovery and CV-matching application. Job seekers can browse collected vacancies, upload a CV, review the profile extracted from it, and get ranked job recommendations with explanations.
 
-## 🚀 Features
+The repository contains a Next.js web app, a FastAPI backend, and a job collector. The features described below reflect the current implementation; this project does **not** currently include an employer portal or automated hiring decisions.
 
-### For Job Seekers
-- **Smart CV Analysis**: AI-powered extraction of skills, experience, and qualifications from your CV
-- **Intelligent Job Matching**: Semantic matching algorithms to find the best job opportunities
-- **Personalized Recommendations**: Tailored job suggestions based on your profile
-- **Application Tracking**: Monitor your application status and get notified of updates
-- **Skill Gap Analysis**: Identify skills you need to develop for your dream jobs
+## What the system does
 
-### For Employers
-- **Automated Candidate Screening**: AI-powered ranking of candidates based on job requirements
-- **Market Intelligence**: Salary benchmarking and skill availability analysis
-- **Streamlined Hiring**: Integrated tools for managing the recruitment process
-- **Quality Candidates**: Access to pre-qualified, matched candidates
+### For job seekers
 
-## 🏗️ Architecture
+- Create an account, sign in, reset a password, and update profile/contact details.
+- Browse and search available jobs, with filters such as job field and location.
+- Upload one PDF or DOCX CV. The upload page currently enforces a 10 MB limit in the browser. The system extracts text and matching signals such as skills, previous job titles, education, field, and experience.
+- Review and correct extracted skills, field, experience, job titles, and education. Saving the profile recalculates recommendations.
+- Get job recommendations ranked using CV/job signals. Match cards show fit details, score confidence, caveats, and skill gaps where available.
+- Mark recommendations as relevant or not relevant; feedback can modestly influence similar future matches.
+- Track job match statuses such as viewed, applied, or rejected, and view dashboard activity and notifications.
+- Use additional career tools for resume analysis, career guidance, interview preparation, career transitions, learning plans, salary guidance, workplace preferences, and network insights.
+- Optionally enable Telegram notifications. Telegram delivery requires server configuration and the user to connect with the bot.
 
-The system consists of three main components:
+Recommendations are estimates based on the CV and job data available. They are not guarantees of eligibility, interview selection, or hiring.
 
-### Frontend (Next.js + TypeScript + Tailwind CSS)
-- Modern, responsive user interface
-- Real-time updates and notifications
-- Mobile-friendly design
-- Type-safe development with TypeScript
+### Job collection
 
-### Backend (Python + FastAPI)
-- RESTful API with comprehensive endpoints
-- AI/ML-powered processing pipeline
-- Secure authentication with JWT
-- Scalable architecture
+- Collects public job posts from configured Telegram channels and the Ethiojobs data source.
+- Cleans and classifies listings, then removes likely duplicates across sources using job text, title, company, and location signals.
+- Keeps application links and combines source information where similar listings are merged.
+- The collector runs hourly through the `Collect Jobs` GitHub Actions workflow when configured, or can be run manually. A local Docker Compose configuration also has a collector service.
 
-### Job Collector
-- Automated job aggregation from multiple sources
-- Data cleaning and deduplication
-- Scheduled execution
-- Extensible source integrations
+The live Render Blueprint does not run a collector worker. To use the GitHub Actions workflow for a deployed database, configure the `RENDER_DATABASE_URL` Actions secret with the database's external connection URL. Never put credentials in source control.
 
-## 📋 Prerequisites
+## What it does not currently do
 
-- Python 3.11+
-- Node.js 18+
-- Docker (optional, for containerized deployment)
+- There is no employer portal, candidate screening dashboard, or employer-side hiring workflow.
+- The app does not submit applications to employers. It links users to the job's application destination and lets users update their own match status.
+- Matching is based on the signals and data available in the CV and listings. Sentence-transformer embeddings are disabled by default; the default path uses structured signals and synonym/word matching.
+- Collection and scraping depend on the upstream sources remaining available and may not include every vacancy.
 
-## 🛠️ Installation
+## Architecture
 
-### Quick Setup (Recommended)
+| Component | Technology | Location |
+| --- | --- | --- |
+| Web app | Next.js 14, React, TypeScript, Tailwind CSS | `frontend/` |
+| API | Python, FastAPI, SQLAlchemy | `backend/` |
+| Job collector | Python source adapters, cleaning, classification, deduplication | `job-collector/` |
+| Database | SQLite by default; PostgreSQL supported for deployment | Backend configuration |
 
-Use the provided setup scripts to quickly set up the entire project:
+The backend exposes interactive API documentation at `/docs` when it is running.
 
-**Linux/Mac:**
-```bash
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-```
+## Run locally
 
-**Windows:**
-```bash
-scripts\setup.bat
-```
+### Requirements
 
-### Manual Setup
+- Python 3.11 or later
+- Node.js 18 or later and npm
+- PostgreSQL is optional for local development (SQLite is the default)
 
-#### Backend Setup
+### 1. Start the backend
 
-1. Navigate to the backend directory:
-```bash
+In PowerShell:
+
+```powershell
 cd backend
-```
-
-2. Create a virtual environment:
-```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+On macOS/Linux, activate the virtual environment with `source venv/bin/activate` instead. The backend reads configuration from environment variables and `backend/.env` when present. The defaults use a local SQLite database.
 
-4. Set up environment variables:
-```bash
-# Edit .env with your configuration
-# The .env file is already created with default values
-```
+Check `http://127.0.0.1:8000/health` for API and database status, and `http://127.0.0.1:8000/docs` for the API reference.
 
-5. Initialize the database:
-```bash
-cd ../database
-python seed.py
-```
+### 2. Start the frontend
 
-6. Run the backend server:
-```bash
-cd ../backend
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+In another terminal:
 
-#### Frontend Setup
-
-1. Navigate to the frontend directory:
-```bash
+```powershell
 cd frontend
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Run the development server:
-```bash
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+Create `frontend/.env.local` for the local API proxy:
 
-#### Job Collector Setup
+```dotenv
+BACKEND_HOST=localhost:8000
+BACKEND_PROTOCOL=http
+```
 
-1. Navigate to the job collector directory:
-```bash
+Open `http://localhost:3000`. The frontend's `/api` route proxies requests to the backend.
+
+### 3. Run the job collector
+
+In a third terminal:
+
+```powershell
 cd job-collector
-```
-
-2. Create a virtual environment:
-```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Run the job collector:
-```bash
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 python main.py
 ```
 
-## 🐳 Docker Deployment
+The collector needs a `DATABASE_URL` pointing to the same database as the backend. To run continuously in the Docker Compose setup, use `docker compose up --build`; see the root `docker-compose.yml` for the configured services.
 
-For easy deployment, use Docker Compose:
+## Configuration
 
-```bash
-docker-compose up --build
-```
+Common backend settings include:
 
-This will start:
-- Backend API on port 8000
-- Frontend on port 3000
-- PostgreSQL database
-- Job collector service
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Database connection. Defaults to local SQLite. |
+| `SECRET_KEY` | Secret used for signing authentication tokens. Set a strong, private value outside local development. |
+| `CORS_ORIGINS` | Allowed browser origins when calling the API directly. |
+| `UPLOAD_DIR` | Local directory for uploaded CV files. |
+| `TELEGRAM_BOT_TOKEN` | Optional bot credential for Telegram notifications. |
+| `SEMANTIC_EMBEDDINGS` | Optional embedding-based matching switch. Defaults to `false` to avoid heavy model memory use on small hosts. |
+| `EXPOSE_RESET_TOKEN` | Development-only option to return password reset tokens when email delivery is not configured. Keep disabled in production. |
 
-## Render Deployment
+Do not commit `.env` files, database passwords, bot tokens, or other credentials.
 
-The repository includes a `render.yaml` Blueprint for deploying the frontend, backend, and PostgreSQL database.
+## Deployment
 
-1. Push the repository to GitHub or GitLab.
-2. In Render, choose **New > Blueprint** and select the repository.
-3. Review the services, then apply the Blueprint.
-4. After the services deploy, open the frontend service URL. The frontend proxies `/api` requests to the backend service.
-5. Add `OPENAI_API_KEY` and any email, SMS, or Telegram credentials in the backend service environment if those features are needed.
+The repository includes a Render Blueprint in `render.yaml` for the backend, frontend, and database. Create a Blueprint deployment from the repository and configure any required service secrets in the hosting provider.
 
-The free web services can spin down when idle, so the first request after inactivity may take longer. The free filesystem is ephemeral: uploaded CV files should not be treated as permanent storage. For production CV retention, update `CVService` to use object storage such as S3-compatible storage.
+Uploaded CVs are written to the service filesystem by default. Ephemeral hosting filesystems can lose uploaded files after a restart or redeploy; use persistent storage or object storage before relying on CV uploads for production retention.
 
-The Render Blueprint does not run the job collector. To populate production jobs without a paid Render worker, the `Collect Jobs` GitHub Actions workflow runs hourly and can also be started manually. Add a repository Actions secret named `RENDER_DATABASE_URL` with the Render Postgres **external** database URL (GitHub repository **Settings > Secrets and variables > Actions**). Do not put this credential in the repository or share it in chat. Then use **Actions > Collect Jobs > Run workflow** for the initial collection. Check the workflow logs for source and persistence counts; the GitHub-hosted runner must be able to connect to the database's external URL.
+Render free web services may sleep while idle, so initial requests can take longer during a cold start. Check `/health` to verify backend/database availability.
 
-Render's free PostgreSQL availability and retention rules can change. If the Blueprint does not offer a free database in your account, create a supported PostgreSQL database separately and set the backend `DATABASE_URL` environment variable to its connection string.
+## API areas
 
-## 📖 API Documentation
+- `/api/auth/*` — account registration, login, current user, password reset
+- `/api/users/*` — profile updates
+- `/api/cv/*` — CV upload, analysis, and profile review
+- `/api/jobs/*` — browse and recommended jobs
+- `/api/matching/*` — CV matching, match status, dashboard statistics, and career tools
+- `/api/notifications/*` — notifications and optional Telegram settings
+- `/api/collaborations/*` — user collaboration and invitation endpoints
 
-Comprehensive API documentation is available in the `docs/api-documentation.md` file.
+## Tests and checks
 
-Key endpoints:
-- Authentication: `/api/auth/*`
-- User Management: `/api/users/*`
-- CV Management: `/api/cv/*`
-- Jobs: `/api/jobs/*`
-- Matching: `/api/matching/*`
-- Notifications: `/api/notifications/*`
+Backend tests:
 
-## 🤖 AI Components
-
-The system uses several AI/ML components:
-
-- **CV Analysis**: Extracts structured information from unstructured CV text
-- **Skill Extraction**: Identifies and categorizes skills from CV text
-- **Job Analysis**: Analyzes job descriptions to extract requirements
-- **Semantic Matching**: Calculates compatibility between CVs and jobs
-- **Text Embeddings**: Generates vector representations for semantic analysis
-- **Match Ranking**: Ranks and filters job matches for optimal results
-
-Detailed documentation is available in `docs/ai-model.md`.
-
-## 🗄️ Database
-
-The system uses SQLite by default (for development) and can be configured to use PostgreSQL for production.
-
-### Database Schema
-
-- `users` - User accounts and profiles
-- `cvs` - User uploaded CVs
-- `jobs` - Job postings
-- `skills` - Skills catalog
-- `matches` - Job matching results
-- `notifications` - User notifications
-
-### Migrations
-
-Database migrations are managed in the `database/migrations/` directory.
-
-Run migrations:
-```bash
-python database/migrations/001_initial_schema.py
-```
-
-Seed the database with sample data:
-```bash
-python database/seed.py
-```
-
-## 🔧 Configuration
-
-### Backend Configuration
-
-Copy `backend/.env` and set at minimum:
-- `DATABASE_URL` — SQLite for local dev, Postgres in Docker
-- `SECRET_KEY` — random, min 32 chars (`openssl rand -hex 32`)
-- `TELEGRAM_BOT_TOKEN` — from @BotFather; required for push notifications
-  (each user must also send `/start` to the bot once)
-- `CORS_ORIGINS` / `FRONTEND_URL` — comma-separated allowed origins; set to
-  the real production domain in prod
-
-### Frontend Configuration
-
-Edit `frontend/package.json` and environment variables to configure:
-- API endpoints (`NEXT_PUBLIC_API_URL`)
-- Feature flags
-- Analytics settings
-
-## 🚢 Production Deployment (Docker Compose)
-
-1. Create the root env file: `cp .env.example .env` and fill in
-   `SECRET_KEY`, `POSTGRES_PASSWORD`, `TELEGRAM_BOT_TOKEN`, `DOMAIN`,
-   `CORS_ORIGINS`, `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`.
-2. Start the stack (backend + frontend + Postgres + hourly job collector):
-   ```bash
-   docker compose up -d --build
-   ```
-   All services have `restart: unless-stopped` and the backend/db have
-   healthchecks, so collection survives reboots.
-3. Enable HTTPS (automatic Let's Encrypt certs via Caddy, requires `DOMAIN`
-   DNS pointing at the host):
-   ```bash
-   docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
-   ```
-4. Migrate existing SQLite data to Postgres (one-time):
-   ```bash
-   python scripts/migrate_sqlite_to_postgres.py \
-     --target postgresql://jobmatching:$POSTGRES_PASSWORD@localhost:5432/jobmatching
-   ```
-5. Verify: `curl https://<domain>/health` should report
-   `{"status": "healthy", "database": "ok", ...}`.
-6. Backups: `./scripts/backup_db.sh` (Postgres) or `--sqlite` for local dev;
-   14-day retention, cron example in the script header.
-
-Monitoring notes:
-- `GET /health` checks DB connectivity and reports active job count.
-- The collector logs `SOURCE ALERT` when a source returns 0 jobs and
-  `SOURCE DEAD` after 3 consecutive empty cycles (source API may have
-  changed) — watch for these in `docker compose logs job-collector`.
-- Auth endpoints are rate limited per IP: register 5/hour, login 20/10min
-  (HTTP 429 with `Retry-After`).
-
-## 🧪 Testing
-
-### Backend Tests
-```bash
+```powershell
 cd backend
-pytest
+python -m pytest
 ```
 
-### Frontend Tests
-```bash
+Frontend production build:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Frontend tests, when applicable:
+
+```powershell
 cd frontend
 npm test
 ```
 
-### Run All Tests
-```bash
-# Backend
-cd backend && pytest
+## Documentation
 
-# Frontend
-cd frontend && npm test
-```
+- Interactive API documentation: `http://127.0.0.1:8000/docs` while the backend is running. This generated API reference is the source of truth for current request/response schemas.
+- [Additional API notes](docs/api-documentation.md) (some endpoint examples may not reflect the latest implementation)
+- [System architecture](docs/system-architecture.md)
+- [AI model notes](docs/ai-model.md)
 
-## 📚 Documentation
+## Contributing
 
-- [System Architecture](docs/system-architecture.md)
-- [API Documentation](docs/api-documentation.md)
-- [AI Model Documentation](docs/ai-model.md)
-- [Ideation Process](docs/ideation-process.md)
+1. Create a branch for your change.
+2. Make and test the change.
+3. Open a pull request with a clear description of behavior and validation.
 
-## 🤝 Contributing
+## License
 
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## � License
-
-This project is licensed under the MIT License.
-
-## 🙏 Acknowledgments
-
-- Built with modern web technologies
-- Inspired by the need for intelligent job matching
-- Uses open-source AI/ML libraries
-
-## 📞 Support
-
-For support, please open an issue in the GitHub repository or contact the development team.
-
-## 🗺️ Roadmap
-
-### Phase 1: Foundation (Current)
-- ✅ Basic authentication
-- ✅ CV upload and analysis
-- ✅ Job collection system
-- ✅ Basic matching algorithm
-- ✅ User dashboard
-
-### Phase 2: Core Features
-- ⏳ Advanced semantic matching
-- ⏳ Machine learning models
-- ⏳ Personalized recommendations
-- ⏳ Employer portal
-
-### Phase 3: Advanced Features
-- ⏳ Real-time notifications
-- ⏳ Video interviewing
-- ⏳ Skill assessment tests
-- ⏳ Mobile applications
-
-### Phase 4: Ecosystem
-- ⏳ API integrations
-- ⏳ Third-party job boards
-- ⏳ Career coaching
-- ⏳ Salary optimization
-
----
-
-Built with ❤️ using modern web technologies and artificial intelligence.
+There is currently no `LICENSE` file in the repository. Add a license before redistributing the project under specific licensing terms.
