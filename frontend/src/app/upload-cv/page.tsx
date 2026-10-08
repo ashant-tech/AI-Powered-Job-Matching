@@ -14,6 +14,20 @@ function parseList(value?: string): string[] {
   }
 }
 
+function parseEducation(value?: string): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((entry) => {
+      if (typeof entry === 'string') return entry;
+      return [entry.degree, entry.field, entry.institution, entry.year].filter(Boolean).join(' | ');
+    }).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export default function UploadCVPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -25,6 +39,8 @@ export default function UploadCVPage() {
   const [editField, setEditField] = useState('other');
   const [editExperienceLevel, setEditExperienceLevel] = useState('');
   const [editYears, setEditYears] = useState('');
+  const [editJobTitles, setEditJobTitles] = useState('');
+  const [editEducation, setEditEducation] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
 
@@ -67,6 +83,8 @@ export default function UploadCVPage() {
             setEditYears(cv.total_years_experience === null || cv.total_years_experience === undefined
               ? ''
               : String(cv.total_years_experience));
+            setEditJobTitles(parseList(cv.job_titles).join('\n'));
+            setEditEducation(parseEducation(cv.education).join('\n'));
           }
         }
       }
@@ -94,6 +112,11 @@ export default function UploadCVPage() {
           field: editField,
           experience_level: editExperienceLevel || null,
           total_years_experience: editYears === '' ? null : Number(editYears),
+          job_titles: editJobTitles.split('\n').map((title) => title.trim()).filter(Boolean),
+          education: editEducation.split('\n').map((line) => {
+            const [degree = '', field = '', institution = '', year = ''] = line.split('|').map((part) => part.trim());
+            return { degree, field, institution, year };
+          }).filter((entry) => Object.values(entry).some(Boolean)),
         }),
       });
       if (!response.ok) {
@@ -352,6 +375,26 @@ export default function UploadCVPage() {
                   rows={3}
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5"
                   placeholder="Python, project management, accounting"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Previous job titles (one per line)
+                <textarea
+                  value={editJobTitles}
+                  onChange={(event) => setEditJobTitles(event.target.value)}
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5"
+                  placeholder={'Software Developer\nIT Support Specialist'}
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Education (one entry per line: degree | field | institution | year)
+                <textarea
+                  value={editEducation}
+                  onChange={(event) => setEditEducation(event.target.value)}
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5"
+                  placeholder="BSc | Computer Science | Example University | 2022"
                 />
               </label>
             </div>

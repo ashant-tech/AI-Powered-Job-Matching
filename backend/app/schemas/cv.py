@@ -45,3 +45,5 @@ class CVProfileUpdate(BaseModel):
     field: Optional[str] = None
     experience_level: Optional[str] = None
     total_years_experience: Optional[int] = Field(default=None, ge=0, le=60)
+    job_titles: Optional[list[str]] = Field(default=None, max_length=30)
+    education: Optional[list[dict[str, str]]] = Field(default=None, max_length=20)

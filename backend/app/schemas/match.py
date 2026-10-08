@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Literal
 from typing import Optional
 from datetime import datetime
 
@@ -39,9 +40,11 @@ class MatchResponse(MatchBase):
     score_confidence: Optional[float] = None
     match_caveats: Optional[list[str]] = None
     component_scores: Optional[dict[str, Optional[float]]] = None
+    cv_match_score: Optional[float] = None
+    feedback_adjustment: Optional[float] = None
 
     class Config:
         from_attributes = True
 
 class MatchUpdate(BaseModel):
-    status: str
+    status: Literal["pending", "viewed", "applied", "rejected", "relevant", "not_relevant"]

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 import json
+import re
 from typing import List
 from app.models.match import Match
 from app.models.cv import CV
@@ -44,6 +45,16 @@ class MatchingService:
             user = self.db.query(User).filter(User.id == user_id).first()
             user_field = normalize_department(user.department) if user else None
         jobs = [job for job in jobs if field_matches(job.field, user_field, strict=True)]
+        jobs_by_id = {job.external_id: job for job in jobs}
+        feedback_examples = [
+            (jobs_by_id[match.external_job_id], match.status)
+            for match in self.db.query(Match).filter(
+                Match.user_id == user_id,
+                Match.cv_id == cv_id,
+                Match.status.in_(["relevant", "not_relevant"]),
+            ).all()
+            if match.external_job_id in jobs_by_id
+        ]
 
         # Calculate match scores for each job
         matches = []
@@ -52,7 +63,23 @@ class MatchingService:
         for job in jobs:
             # Use enhanced matching with details
             match_details = self.semantic_matcher.calculate_match_with_details(cv, job)
-            match_score = match_details["match_score"]
+            cv_match_score = match_details["match_score"]
+            feedback_adjustment = self._feedback_adjustment(job, feedback_examples)
+            match_score = round(max(0.0, min(100.0, cv_match_score + feedback_adjustment)), 2)
+            match_details["match_score"] = match_score
+            match_details["cv_match_score"] = cv_match_score
+            match_details["feedback_adjustment"] = feedback_adjustment
+            if feedback_adjustment:
+                direction = "similar roles you marked relevant" if feedback_adjustment > 0 else "similar roles you marked not relevant"
+                match_details["match_reasons"].append(
+                    f"Your feedback on {direction} adjusted this estimate by {feedback_adjustment:+.1f} points."
+                )
+            if match_score >= 75 and match_details["score_confidence"] >= 60:
+                match_details["fit_level"] = "Strong"
+            elif match_score >= 55 and match_details["score_confidence"] >= 40:
+                match_details["fit_level"] = "Good"
+            else:
+                match_details["fit_level"] = "Possible"
 
             existing_match = self.db.query(Match).filter(
                 Match.user_id == user_id,
@@ -63,7 +90,8 @@ class MatchingService:
             if existing_match:
                 existing_match.match_score = match_score
                 existing_match.match_reasons = self._serialize_match_details(match_details)
-                matches.append(existing_match)
+                if existing_match.status != "not_relevant":
+                    matches.append(existing_match)
                 continue
 
             if match_score < MIN_MATCH_SCORE:
@@ -132,6 +160,8 @@ class MatchingService:
                         "score_confidence": reasons_data.get("score_confidence"),
                         "match_caveats": reasons_data.get("match_caveats"),
                         "component_scores": reasons_data.get("component_scores"),
+                        "cv_match_score": reasons_data.get("cv_match_score"),
+                        "feedback_adjustment": reasons_data.get("feedback_adjustment"),
                     }
                 except (json.JSONDecodeError, TypeError):
                     pass
@@ -183,12 +213,73 @@ class MatchingService:
         match = self.get_match(match_id)
         if not match:
             raise ValueError("Match not found")
+        if status not in {"pending", "viewed", "applied", "rejected", "relevant", "not_relevant"}:
+            raise ValueError("Invalid match status")
 
         match.status = status
         self.db.commit()
         self.db.refresh(match)
 
         return match
+
+    @staticmethod
+    def _feedback_adjustment(
+        job: ExternalJob,
+        examples: list[tuple[ExternalJob, str]],
+    ) -> float:
+        weighted_feedback = 0.0
+        total_similarity = 0.0
+        candidate_skills = MatchingService._job_skills(job)
+        candidate_title = MatchingService._job_tokens(job.title)
+
+        for example, status in examples:
+            if example.external_id == job.external_id:
+                continue
+            example_skills = MatchingService._job_skills(example)
+            example_title = MatchingService._job_tokens(example.title)
+            field_similarity = float(bool(job.field and job.field == example.field))
+            skill_union = candidate_skills | example_skills
+            skill_similarity = (
+                len(candidate_skills & example_skills) / len(skill_union)
+                if skill_union else 0.0
+            )
+            title_union = candidate_title | example_title
+            title_similarity = (
+                len(candidate_title & example_title) / len(title_union)
+                if title_union else 0.0
+            )
+            similarity = 0.2 * field_similarity + 0.5 * skill_similarity + 0.3 * title_similarity
+            if similarity < 0.3 or (skill_similarity < 0.25 and title_similarity < 0.25):
+                continue
+            sentiment = 1.0 if status == "relevant" else -1.0
+            weighted_feedback += sentiment * similarity
+            total_similarity += similarity
+
+        if not total_similarity:
+            return 0.0
+        return round(8.0 * weighted_feedback / max(2.0, total_similarity), 2)
+
+    @staticmethod
+    def _job_skills(job: ExternalJob) -> set[str]:
+        try:
+            values = json.loads(job.skills or "[]")
+        except (json.JSONDecodeError, TypeError):
+            values = []
+        if not isinstance(values, list):
+            return set()
+        return {
+            " ".join(re.findall(r"[a-z0-9+#.]+", str(value).lower()))
+            for value in values
+            if str(value).strip()
+        }
+
+    @staticmethod
+    def _job_tokens(value: str | None) -> set[str]:
+        stop_words = {"and", "at", "for", "of", "the", "with", "senior", "junior"}
+        return {
+            token for token in re.findall(r"[a-z0-9+#.]+", (value or "").lower())
+            if len(token) > 1 and token not in stop_words
+        }
 
     def get_top_matches(self, user_id: int, limit: int = 10) -> List[MatchResponse]:
         user_field = self._resolve_user_field(user_id)
@@ -220,6 +311,8 @@ class MatchingService:
                     "score_confidence": reasons_data.get("score_confidence"),
                     "match_caveats": reasons_data.get("match_caveats"),
                     "component_scores": reasons_data.get("component_scores"),
+                    "cv_match_score": reasons_data.get("cv_match_score"),
+                    "feedback_adjustment": reasons_data.get("feedback_adjustment"),
                 }
             except (json.JSONDecodeError, TypeError):
                 pass
@@ -239,6 +332,8 @@ class MatchingService:
     def _serialize_match_details(match_details: dict) -> str:
         return json.dumps({
             "score_breakdown": match_details["match_score"],
+            "cv_match_score": match_details["cv_match_score"],
+            "feedback_adjustment": match_details["feedback_adjustment"],
             "detailed_reasons": match_details["match_reasons"],
             "component_scores": match_details["component_scores"],
             "fit_level": match_details["fit_level"],

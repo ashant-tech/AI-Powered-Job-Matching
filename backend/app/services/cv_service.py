@@ -110,6 +110,16 @@ class CVService:
             cv.experience_level = updates["experience_level"]
         if "total_years_experience" in updates:
             cv.total_years_experience = updates["total_years_experience"]
+        if "job_titles" in updates:
+            titles = updates["job_titles"] or []
+            normalized_titles = {}
+            for title in titles:
+                cleaned_title = title.strip()
+                if cleaned_title:
+                    normalized_titles.setdefault(cleaned_title.casefold(), cleaned_title)
+            cv.job_titles = json.dumps(sorted(normalized_titles.values(), key=str.casefold))
+        if "education" in updates:
+            cv.education = json.dumps(updates["education"] or [])
 
         self.db.commit()
         self.db.refresh(cv)

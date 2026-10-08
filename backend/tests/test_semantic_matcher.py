@@ -136,3 +136,16 @@ def test_placeholder_cv_experience_does_not_count_as_confirmed_work_history():
     job = _job("computer_it", "Developer", requirements="3 years of experience required.")
 
     assert matcher._experience_match(cv, job) is None
+
+
+def test_sparse_job_listing_has_low_score_confidence_and_is_not_a_strong_fit():
+    matcher = SemanticMatcher()
+    cv = _cv()
+    job = _job("computer_it", "Office Coordinator")
+
+    details = matcher.calculate_match_with_details(cv, job)
+
+    assert details["score_confidence"] < 25
+    assert details["fit_level"] == "Possible"
+    assert details["match_caveats"]
+    assert details["match_score"] < 45

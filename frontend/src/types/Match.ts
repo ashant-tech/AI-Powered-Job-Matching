@@ -16,6 +16,8 @@ export interface Match {
   score_confidence?: number;
   match_caveats?: string[];
   component_scores?: Record<string, number | null>;
+  cv_match_score?: number;
+  feedback_adjustment?: number;
   skill_gaps?: {
     missing_skills: string[];
     matched_skills?: string[];
@@ -24,6 +26,8 @@ export interface Match {
   };
 }
 
+export type MatchStatus = 'pending' | 'viewed' | 'applied' | 'rejected' | 'relevant' | 'not_relevant';
+
 export interface MatchUpdate {
-  status: string;
+  status: MatchStatus;
 }

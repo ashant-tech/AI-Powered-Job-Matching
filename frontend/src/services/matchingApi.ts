@@ -1,3 +1,5 @@
+import { MatchStatus } from '../types/Match';
+
 const API_BASE_URL = '/api';
 
 export const matchingApi = {
@@ -30,7 +32,7 @@ export const matchingApi = {
     return response.json();
   },
 
-  async updateMatchStatus(token: string, matchId: number, status: string) {
+  async updateMatchStatus(token: string, matchId: number, status: MatchStatus) {
     const response = await fetch(`${API_BASE_URL}/matching/${matchId}`, {
       method: 'PUT',
       headers: {

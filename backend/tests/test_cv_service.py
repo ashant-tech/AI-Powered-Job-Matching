@@ -8,11 +8,11 @@ from sqlalchemy.orm import sessionmaker
 from app.config.database import Base
 from app.models.cv import CV
 from app.models.job import ExternalJob
+from app.models.match import Match
 from app.models.user import User
-from app.schemas.cv import CVResponse
+from app.schemas.cv import CVProfileUpdate, CVResponse
 from app.services.cv_service import CVService
 from app.services.matching_service import MatchingService
-from app.schemas.cv import CVProfileUpdate
 
 
 @pytest.fixture
@@ -118,6 +118,13 @@ def test_update_matching_profile_saves_user_corrected_cv_signals(db_session):
             field="computer_it",
             experience_level="Mid-Level",
             total_years_experience=4,
+            job_titles=["Software Developer", "software developer"],
+            education=[{
+                "degree": "BSc",
+                "field": "Computer Science",
+                "institution": "Example University",
+                "year": "2022",
+            }],
         ),
     )
 
@@ -125,6 +132,8 @@ def test_update_matching_profile_saves_user_corrected_cv_signals(db_session):
     assert updated.field == "computer_it"
     assert updated.experience_level == "Mid-Level"
     assert updated.total_years_experience == 4
+    assert updated.job_titles == '["Software Developer"]'
+    assert "Example University" in updated.education
 
 
 def test_update_matching_profile_rejects_unknown_cv_field(db_session):
@@ -187,3 +196,72 @@ def test_match_response_includes_fit_evidence_and_job_requirements(db_session, m
     assert matches[0].score_confidence is not None
     assert matches[0].component_scores["skill"] == 1.0
     assert matches[0].job.requirements == "Python and SQL experience."
+
+
+def test_prior_relevant_feedback_boosts_similar_jobs_and_not_relevant_reduces_them(db_session):
+    relevant_example = ExternalJob(
+        external_id="liked-python",
+        title="Python Developer",
+        company="Example Co",
+        description="Develop Python applications.",
+        skills='["python", "sql"]',
+        field="computer_it",
+        apply_url="https://example.com/python",
+    )
+    similar_job = ExternalJob(
+        external_id="similar-python",
+        title="Python Software Developer",
+        company="Another Co",
+        description="Develop software using Python.",
+        skills='["python", "sql"]',
+        field="computer_it",
+        apply_url="https://example.com/python-role",
+    )
+    adjustment = MatchingService._feedback_adjustment(similar_job, [(relevant_example, "relevant")])
+    negative_adjustment = MatchingService._feedback_adjustment(
+        similar_job,
+        [(relevant_example, "not_relevant")],
+    )
+
+    assert adjustment > 0
+    assert negative_adjustment < 0
+    assert abs(adjustment) <= 8
+
+
+def test_feedback_ignores_same_field_only_and_unrelated_examples():
+    field_only_job = ExternalJob(
+        external_id="accountant",
+        title="Accountant",
+        skills='["audit", "bookkeeping"]',
+        field="business_finance",
+    )
+    rated_job = ExternalJob(
+        external_id="nurse",
+        title="Registered Nurse",
+        skills='["patient care", "nursing"]',
+        field="business_finance",
+    )
+
+    assert MatchingService._feedback_adjustment(field_only_job, [(rated_job, "relevant")]) == 0
+
+
+def test_update_match_status_accepts_only_supported_feedback_values(db_session):
+    user = User(email="status@example.com", username="status", hashed_password="hash")
+    db_session.add(user)
+    db_session.commit()
+    cv = CV(user_id=user.id, title="CV", file_path="cv.pdf", file_name="cv.pdf")
+    db_session.add(cv)
+    db_session.commit()
+    match = Match(
+        user_id=user.id,
+        cv_id=cv.id,
+        external_job_id="job",
+        match_score=55,
+    )
+    db_session.add(match)
+    db_session.commit()
+
+    updated = MatchingService(db_session).update_match_status(match.id, "relevant")
+    assert updated.status == "relevant"
+    with pytest.raises(ValueError, match="Invalid match status"):
+        MatchingService(db_session).update_match_status(match.id, "invalid")

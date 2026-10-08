@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { matchingApi } from '../../services/matchingApi';
-import { Match } from '../../types/Match';
+import { Match, MatchStatus } from '../../types/Match';
 
 function parseList(value?: string): string[] {
   if (!value) return [];
@@ -24,6 +24,8 @@ export default function RecommendationsPage() {
   const [cvs, setCvs] = useState<any[]>([]);
   const [cvAnalysis, setCvAnalysis] = useState<any>(null);
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null);
+  const [feedbackSaving, setFeedbackSaving] = useState<number | null>(null);
+  const [feedbackError, setFeedbackError] = useState('');
   const markedViewed = useRef<Set<number>>(new Set());
 
   useEffect(() => {
@@ -122,7 +124,13 @@ export default function RecommendationsPage() {
   };
 
   const markMatchViewed = async (match: any) => {
-    if (!match?.id || match.status === 'viewed' || markedViewed.current.has(match.id)) {
+    if (
+      !match?.id
+      || match.status === 'viewed'
+      || match.status === 'relevant'
+      || match.status === 'not_relevant'
+      || markedViewed.current.has(match.id)
+    ) {
       return;
     }
     markedViewed.current.add(match.id);
@@ -137,6 +145,27 @@ export default function RecommendationsPage() {
       // View-tracking is best-effort; let a later expansion retry.
       markedViewed.current.delete(match.id);
       console.error('Failed to mark match viewed:', error);
+    }
+  };
+
+  const saveMatchFeedback = async (match: Match, status: Extract<MatchStatus, 'relevant' | 'not_relevant'>) => {
+    const token = localStorage.getItem('token');
+    if (!token || feedbackSaving !== null) return;
+
+    setFeedbackSaving(match.id);
+    setFeedbackError('');
+    try {
+      await matchingApi.updateMatchStatus(token, match.id, status);
+      setMatches((current) => current.filter((item) => item.id !== match.id));
+      if (status === 'relevant') {
+        setMatches((current) =>
+          [...current, { ...match, status }].sort((first, second) => second.match_score - first.match_score)
+        );
+      }
+    } catch (error) {
+      setFeedbackError(error instanceof Error ? error.message : 'Could not save your feedback.');
+    } finally {
+      setFeedbackSaving(null);
     }
   };
 
@@ -324,6 +353,11 @@ export default function RecommendationsPage() {
                 <p className="mt-1 text-sm text-slate-500">{matches.length} opportunities, ranked by CV fit signals—not a prediction of hiring outcomes.</p>
               </div>
             </div>
+            {feedbackError && (
+              <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {feedbackError}
+              </p>
+            )}
             {matches.map((match) => (
               <article key={match.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-200 hover:shadow-lg hover:shadow-slate-200/60 sm:p-6">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -462,6 +496,32 @@ export default function RecommendationsPage() {
                     >
                       {expandedMatch === match.id ? 'Show Less' : 'Show Details'}
                     </button>
+                    <div className="mt-2 border-t border-slate-100 pt-3">
+                      <p className="mb-2 text-xs font-medium text-slate-500">Was this recommendation useful?</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => saveMatchFeedback(match, 'relevant')}
+                          disabled={feedbackSaving !== null}
+                          aria-pressed={match.status === 'relevant'}
+                          className={`rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${match.status === 'relevant' ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          Relevant
+                        </button>
+                        <button
+                          onClick={() => saveMatchFeedback(match, 'not_relevant')}
+                          disabled={feedbackSaving !== null}
+                          aria-pressed={match.status === 'not_relevant'}
+                          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          Not relevant
+                        </button>
+                      </div>
+                      {match.feedback_adjustment ? (
+                        <p className="mt-2 text-xs leading-5 text-indigo-700">
+                          Similar jobs you rated adjusted this score by {match.feedback_adjustment > 0 ? '+' : ''}{match.feedback_adjustment} points.
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                   </article>

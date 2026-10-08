@@ -11,6 +11,6 @@ class Match(Base):
     external_job_id = Column(String, nullable=False)
     match_score = Column(Float, nullable=False)
     match_reasons = Column(String)  # JSON string
-    status = Column(String, default="pending")  # pending, viewed, applied, rejected
+    status = Column(String, default="pending")  # pending, viewed, applied, rejected, relevant, not_relevant
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
