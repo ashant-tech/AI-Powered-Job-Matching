@@ -154,13 +154,23 @@ class JobService:
             user_field = cv.field
         if not user_field:
             user_field = normalize_department(user.department)
-        jobs = [job for job in ExternalJobService(self.db).fetch_jobs() if field_matches(job.field, user_field, strict=True)]
 
         cv_skills = _parse_skills(cv.skills if cv else None)
+        if not user_field and not cv_skills:
+            return []
+
+        jobs = [
+            job for job in ExternalJobService(self.db).fetch_jobs()
+            if field_matches(job.field, user_field, strict=True)
+            and (
+                not cv_skills
+                or bool(cv_skills & _parse_skills(job.skills))
+            )
+        ]
 
         def rank_key(job):
             overlap = len(cv_skills & _parse_skills(job.skills)) if cv_skills else 0
-            # same classified field first, then skill overlap, then newest
+            # same classified field first, then CV skill overlap, then newest
             same_field = 1 if (user_field and job.field == user_field) else 0
             return (same_field, overlap, job.posted_at or job.created_at)
 

@@ -7,7 +7,7 @@ from app.models.job import ExternalJob
 from app.models.user import User
 from app.schemas.match import MatchResponse, JobInfo
 from app.ai.semantic_matcher import SemanticMatcher
-from app.ai.ranking import rank_matches
+from app.ai.ranking import filter_low_quality_matches, rank_matches
 from app.services.notification_service import NotificationService
 from app.services.external_job_service import ExternalJobService
 from app.services.field_classifier import field_matches, normalize_department
@@ -98,7 +98,10 @@ class MatchingService:
             )
 
         # Rank matches
-        ranked_matches = rank_matches(matches)
+        ranked_matches = filter_low_quality_matches(
+            rank_matches(matches),
+            threshold=self.notification_threshold,
+        )
 
         # Include job information in response
         match_responses = []
