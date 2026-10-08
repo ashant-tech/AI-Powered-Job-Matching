@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 import json
+import logging
 import re
 from typing import List
 from app.models.match import Match
@@ -16,6 +17,7 @@ from app.services.job_service import JobService
 
 
 MIN_MATCH_SCORE = 45.0
+logger = logging.getLogger(__name__)
 
 
 class MatchingService:
@@ -124,11 +126,18 @@ class MatchingService:
                 if job:
                     job_objects.append(job)
 
-            NotificationService(self.db).send_match_notification(
-                user_id=user_id,
-                match_count=len(high_quality_matches),
-                top_jobs=job_objects[:5]
-            )
+            try:
+                NotificationService(self.db).send_match_notification(
+                    user_id=user_id,
+                    match_count=len(high_quality_matches),
+                    top_jobs=job_objects[:5]
+                )
+            except Exception:
+                self.db.rollback()
+                logger.exception(
+                    "Failed to send match notification for user %s after saving matches",
+                    user_id,
+                )
 
         # Rank matches
         ranked_matches = filter_low_quality_matches(

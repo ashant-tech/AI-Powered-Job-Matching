@@ -32,7 +32,12 @@ async def general_exception_handler(request: Request, exc: Exception):
     """
     Handle general exceptions.
     """
-    logger.error(f"Unexpected error: {str(exc)}")
+    logger.error(
+        "Unhandled exception for %s %s",
+        request.method,
+        request.url.path,
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error", "status": 500}

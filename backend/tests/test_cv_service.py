@@ -152,7 +152,7 @@ def test_update_matching_profile_rejects_unknown_cv_field(db_session):
         )
 
 
-def test_match_response_includes_fit_evidence_and_job_requirements(db_session, monkeypatch):
+def test_match_response_includes_fit_evidence_and_job_requirements(db_session, monkeypatch, caplog):
     user = User(email="matches@example.com", username="matches", hashed_password="hash")
     db_session.add(user)
     db_session.commit()
@@ -184,9 +184,12 @@ def test_match_response_includes_fit_evidence_and_job_requirements(db_session, m
             return [job]
 
     monkeypatch.setattr("app.services.matching_service.ExternalJobService", lambda db: ExternalJobs())
+    def fail_notification(*args, **kwargs):
+        raise RuntimeError("notification service unavailable")
+
     monkeypatch.setattr(
         "app.services.matching_service.NotificationService.send_match_notification",
-        lambda *args, **kwargs: None,
+        fail_notification,
     )
 
     matches = MatchingService(db_session).find_matches_for_cv(user.id, cv.id)
@@ -196,6 +199,8 @@ def test_match_response_includes_fit_evidence_and_job_requirements(db_session, m
     assert matches[0].score_confidence is not None
     assert matches[0].component_scores["skill"] == 1.0
     assert matches[0].job.requirements == "Python and SQL experience."
+    assert "Failed to send match notification" in caplog.text
+    assert "notification service unavailable" in caplog.text
 
 
 def test_prior_relevant_feedback_boosts_similar_jobs_and_not_relevant_reduces_them(db_session):
