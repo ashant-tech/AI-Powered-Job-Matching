@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # AI/ML
     OPENAI_API_KEY: Optional[str] = None
     EMBEDDING_MODEL: str = "text-embedding-ada-002"
+    # Sentence-transformer embeddings give true semantic matching but load
+    # torch + a ~90MB model, which OOMs small hosts (Render free = 512MB) and
+    # makes match requests time out with a 502. Off by default; enable only
+    # where there is enough RAM. When off, matching uses the synonym path.
+    SEMANTIC_EMBEDDINGS: bool = False
     
     # Email
     SMTP_HOST: Optional[str] = None

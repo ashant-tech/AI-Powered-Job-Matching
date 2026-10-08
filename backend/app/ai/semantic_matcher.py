@@ -69,6 +69,11 @@ def _get_shared_embedding_model():
     if _SHARED_MODEL_TRIED:
         return _SHARED_MODEL
     _SHARED_MODEL_TRIED = True
+    from app.config.settings import settings
+    if not settings.SEMANTIC_EMBEDDINGS:
+        # Disabled by default: torch + the model exceed small-host memory and
+        # stall match requests. Use the synonym word-overlap path instead.
+        return None
     try:
         from sentence_transformers import SentenceTransformer
         _SHARED_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
