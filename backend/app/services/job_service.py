@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -34,6 +35,38 @@ def _parse_skills(skills_json: Optional[str]) -> set:
     return set()
 
 
+def _token_relevance(token: str, job: ExternalJob) -> float:
+    """Weight of one search token against a job, or 0.0 if it matches nowhere.
+    Title beats skills beats company beats description. Tokens of 4+ chars may
+    match inside a word; shorter tokens must match on a word boundary so 'it'
+    does not hit 'required'/'abilities' in nearly every posting."""
+    word_re = re.compile(r"\b" + re.escape(token) + r"\b")
+    allow_substring = len(token) >= 4
+    best = 0.0
+    for text, weight in (
+        (job.title or "", 5.0),
+        (job.skills or "", 3.0),
+        (job.company or "", 2.0),
+        (job.description or "", 1.0),
+    ):
+        low = text.lower()
+        if word_re.search(low) or (allow_substring and token in low):
+            best = max(best, weight)
+    return best
+
+
+def _search_relevance(job: ExternalJob, tokens: List[str]) -> float:
+    """Total relevance across all query tokens. Returns 0.0 if ANY token is
+    unmatched, so results only contain jobs relevant to the whole query."""
+    total = 0.0
+    for token in tokens:
+        score = _token_relevance(token, job)
+        if score == 0.0:
+            return 0.0
+        total += score
+    return total
+
+
 class JobService:
     def __init__(self, db: Session):
         self.db = db
@@ -57,8 +90,18 @@ class JobService:
         jobs = ExternalJobService(self.db).fetch_jobs()
 
         if search:
-            search_lower = search.lower()
-            jobs = [job for job in jobs if search_lower in f"{job.title} {job.description or ''} {job.company}".lower()]
+            tokens = [t for t in re.split(r"\s+", search.lower().strip()) if t]
+            if tokens:
+                scored = [(_search_relevance(job, tokens), job) for job in jobs]
+                scored = [pair for pair in scored if pair[0] > 0.0]
+                scored.sort(
+                    key=lambda pair: (
+                        pair[0],
+                        pair[1].posted_at or pair[1].created_at or datetime.min,
+                    ),
+                    reverse=True,
+                )
+                jobs = [job for _, job in scored]
         if location:
             jobs = [job for job in jobs if job.location and location.lower() in job.location.lower()]
         if job_type:
