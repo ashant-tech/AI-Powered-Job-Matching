@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { jobApi, FIELD_LABELS, ETHIOPIAN_CITIES } from '../../services/jobApi';
 
@@ -152,13 +153,22 @@ export default function JobsPage() {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-indigo-600">AI Job Matching</h1>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            ← Back to Dashboard
-          </button>
+          <Link href="/" className="text-2xl font-bold text-indigo-600">AI Job Matching</Link>
+          <nav aria-label="Main navigation" className="flex items-center gap-4">
+            {token ? (
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Back to Dashboard
+              </button>
+            ) : (
+              <>
+                <Link href="/login" className="text-gray-600 hover:text-gray-900">Sign In</Link>
+                <Link href="/register" className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">Create Account</Link>
+              </>
+            )}
+          </nav>
         </div>
       </header>
 

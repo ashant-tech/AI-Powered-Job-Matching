@@ -101,7 +101,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
+      <div className="w-full max-w-md">
+        <nav aria-label="Main navigation" className="mb-4 flex justify-between text-sm font-medium text-indigo-700">
+          <Link href="/" className="hover:underline">Home</Link>
+          <Link href="/jobs" className="hover:underline">Browse Jobs</Link>
+          <Link href="/register" className="hover:underline">Create Account</Link>
+        </nav>
+        <div className="bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
@@ -172,6 +178,7 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+        </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,11 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-20">
+        <nav className="mb-12 flex justify-end gap-5 text-sm font-semibold text-white">
+          <Link href="/jobs" className="hover:text-blue-200">Browse Jobs</Link>
+          <Link href="/login" className="hover:text-blue-200">Sign In</Link>
+          <Link href="/register" className="hover:text-blue-200">Create Account</Link>
+        </nav>
         <div className="text-center text-white">
           <div className="inline-block mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
             <span className="text-sm font-medium">🚀 Ethiopia's #1 AI-Powered Career Platform</span>
@@ -28,6 +33,12 @@ export default function Home() {
               className="bg-indigo-500/30 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-indigo-500/50 transition border border-white/30"
             >
               Browse Jobs
+            </Link>
+            <Link
+              href="/login"
+              className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-lg font-semibold hover:bg-white/20 transition border border-white/30"
+            >
+              Sign In
             </Link>
           </div>
           <div className="mt-8 flex justify-center gap-8 text-sm text-blue-200">
