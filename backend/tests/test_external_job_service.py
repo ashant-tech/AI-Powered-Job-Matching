@@ -54,6 +54,113 @@ def test_upsert_jobs_creates_and_updates(db_session):
     assert job.apply_url == "https://careers.trustedjobs.example/jobs/job-1"
 
 
+def test_upsert_jobs_merges_cross_source_copies(db_session):
+    description = (
+        "Responsible for managing financial reports, budgets, reconciliations, monthly closes, "
+        "regulatory filings, audit support, and internal controls across the organization."
+    )
+    future = datetime.utcnow() + timedelta(days=10)
+    counts = upsert_jobs(db_session, [{
+        "external_id": "telegram-101",
+        "title": "Finance Officer",
+        "company": "Example Microfinance",
+        "location": "Addis Ababa, Ethiopia",
+        "description": description,
+        "skills": "Excel, Budgeting",
+        "source": "Telegram",
+        "apply_url": "https://t.me/jobs/101",
+        "deadline": future.isoformat(),
+    }])
+    assert counts == {"created": 1, "updated": 0, "skipped": 0}
+
+    counts = upsert_jobs(db_session, [{
+        "external_id": "website-finance-officer",
+        "title": "Job Vacancy: Finance Officer",
+        "company": "Example Microfinance",
+        "location": "Addis Ababa",
+        "description": description + " Candidates should submit an updated CV.",
+        "skills": ["Accounting"],
+        "source": "Ethiojobs",
+        "apply_url": "https://careers.example.com/finance-officer",
+        "deadline": (datetime.utcnow() - timedelta(days=1)).isoformat(),
+    }])
+
+    job = db_session.query(ExternalJob).one()
+    assert counts == {"created": 0, "updated": 1, "skipped": 0}
+    assert job.external_id == "telegram-101"
+    assert job.source == "Telegram, Ethiojobs"
+    assert job.apply_url == "https://careers.example.com/finance-officer"
+    assert "Excel" in job.skills
+    assert "Budgeting" in job.skills
+    assert "Accounting" in job.skills
+    assert job.is_active is True
+
+
+def test_upsert_jobs_keeps_distinct_openings_separate(db_session):
+    upsert_jobs(db_session, [
+        {
+            "external_id": "finance-opening",
+            "title": "Finance Officer",
+            "company": "Example Microfinance",
+            "location": "Addis Ababa",
+            "description": (
+                "Manage financial reports, budgets, reconciliations, monthly closes, regulatory "
+                "filings, audit support, and internal controls across the organization."
+            ),
+        },
+        {
+            "external_id": "finance-trainee",
+            "title": "Finance Officer",
+            "company": "Example Microfinance",
+            "location": "Addis Ababa",
+            "description": (
+                "Provide customer support, process new account applications, maintain client "
+                "records, answer inquiries, and coordinate branch service schedules."
+            ),
+        },
+    ])
+
+    assert db_session.query(ExternalJob).count() == 2
+
+
+def test_fetch_jobs_hides_stored_cross_source_duplicates(db_session):
+    deadline = datetime.utcnow() + timedelta(days=5)
+    description = (
+        "Responsible for managing financial reports, budgets, reconciliations, monthly closes, "
+        "regulatory filings, audit support, and internal controls across the organization."
+    )
+    db_session.add_all([
+        ExternalJob(
+            external_id="stored-telegram-copy",
+            title="Finance Officer",
+            company="Example Microfinance",
+            location="Addis Ababa",
+            description=description,
+            source="Telegram",
+            apply_url="https://t.me/jobs/102",
+            deadline=deadline,
+            is_active=True,
+        ),
+        ExternalJob(
+            external_id="stored-website-copy",
+            title="Job Vacancy: Finance Officer",
+            company="Example Microfinance",
+            location="Addis Ababa, Ethiopia",
+            description=description,
+            source="Ethiojobs",
+            apply_url="https://careers.example.com/finance-officer",
+            deadline=deadline,
+            is_active=True,
+        ),
+    ])
+    db_session.commit()
+
+    jobs = ExternalJobService(db_session).fetch_jobs()
+
+    assert len(jobs) == 1
+    assert jobs[0].apply_url == "https://careers.example.com/finance-officer"
+
+
 def test_upsert_jobs_skips_invalid_records(db_session):
     counts = upsert_jobs(db_session, [
         {"title": "", "company": "Co", "description": "d"},  # empty title

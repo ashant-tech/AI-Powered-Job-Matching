@@ -1,5 +1,7 @@
 import hashlib
+import json
 import os
+import re
 from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
@@ -11,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.models.job import ExternalJob
 from app.services.deadline_parser import extract_deadline
 from app.services.field_classifier import classify_job
+from app.services.job_deduplication import are_duplicate_jobs, deduplicate_jobs
 
 DEFAULT_JOB_TTL_DAYS = 30
 
@@ -19,6 +22,10 @@ def upsert_jobs(db: Session, records: list[dict], default_ttl_days: int = DEFAUL
     """Insert or update jobs by external_id. Jobs whose deadline already passed are stored inactive."""
     now = datetime.utcnow()
     counts = {"created": 0, "updated": 0, "skipped": 0}
+    active_candidates = [
+        job for job in db.query(ExternalJob).filter(ExternalJob.is_active == True).all()  # noqa: E712
+        if job.deadline is None or job.deadline > now
+    ]
 
     for record in records:
         if not isinstance(record, dict):
@@ -46,6 +53,13 @@ def upsert_jobs(db: Session, records: list[dict], default_ttl_days: int = DEFAUL
             deadline = now + timedelta(days=default_ttl_days)
 
         job = db.query(ExternalJob).filter(ExternalJob.external_id == external_id).first()
+        is_cross_source_duplicate = False
+        if job is None:
+            job = next(
+                (candidate for candidate in active_candidates if are_duplicate_jobs(record, candidate)),
+                None,
+            )
+            is_cross_source_duplicate = job is not None
         if job is None:
             job = ExternalJob(external_id=external_id, title=title, company=company)
             db.add(job)
@@ -53,20 +67,33 @@ def upsert_jobs(db: Session, records: list[dict], default_ttl_days: int = DEFAUL
         else:
             counts["updated"] += 1
 
-        job.title = title
-        job.company = company
-        job.description = description
-        job.location = _clean_str(record.get("location")) or None
-        job.salary_min = _salary(record.get("salary_min"))
-        job.salary_max = _salary(record.get("salary_max"))
-        job.job_type = _clean_str(record.get("job_type")) or None
-        job.requirements = _clean_str(record.get("requirements")) or None
-        job.skills = record.get("skills") if isinstance(record.get("skills"), str) else None
+        if not is_cross_source_duplicate or len(description) > len(job.description or ""):
+            job.title = title
+            job.company = company
+            job.description = description
+        location = _clean_str(record.get("location"))
+        job.location = job.location or location or None
+        job.salary_min = job.salary_min or _salary(record.get("salary_min"))
+        job.salary_max = job.salary_max or _salary(record.get("salary_max"))
+        job.job_type = job.job_type or _clean_str(record.get("job_type")) or None
+        requirements = _clean_str(record.get("requirements"))
+        job.requirements = max((job.requirements or "", requirements), key=len) or None
+        job.skills = _merge_skills(job.skills, record.get("skills"))
         job.field = classify_job(job.title, job.description or "", job.skills or "", job.requirements or "")
-        job.source = _clean_str(record.get("source")) or None
-        job.apply_url = apply_url
-        job.deadline = deadline
-        job.is_active = deadline > now if record.get("is_active", True) else False
+        source = _clean_str(record.get("source"))
+        job.source = _merge_sources(job.source, source)
+        if not job.apply_url or ("t.me/" in job.apply_url and apply_url and "t.me/" not in apply_url):
+            job.apply_url = apply_url
+        if not job.deadline or deadline > job.deadline:
+            job.deadline = deadline
+        incoming_is_active = deadline > now and record.get("is_active", True)
+        job.is_active = (
+            (job.deadline is None or job.deadline > now) and job.is_active
+            if is_cross_source_duplicate
+            else incoming_is_active
+        )
+        if job.is_active and job not in active_candidates:
+            active_candidates.append(job)
 
     db.commit()
     return counts
@@ -93,10 +120,11 @@ class ExternalJobService:
         self.ingest_external_api_jobs()
 
         now = datetime.utcnow()
-        return self.db.query(ExternalJob).filter(
+        jobs = self.db.query(ExternalJob).filter(
             ExternalJob.is_active == True,  # noqa: E712
             or_(ExternalJob.deadline.is_(None), ExternalJob.deadline > now),
         ).order_by(ExternalJob.posted_at.desc()).all()
+        return deduplicate_jobs(jobs)
 
     def ingest_external_api_jobs(self) -> dict:
         """Pull jobs from EXTERNAL_JOB_API_URLS (comma-separated) and upsert them."""
@@ -171,4 +199,36 @@ def _coerce_deadline(value: Any) -> datetime | None:
             return datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
         except ValueError:
             return None
-    return None
+
+
+def _merge_sources(existing: str | None, incoming: str) -> str | None:
+    sources = []
+    for source in (existing or "").split(",") + [incoming]:
+        source = source.strip()
+        if source and source not in sources:
+            sources.append(source)
+    return ", ".join(sources) or None
+
+
+def _merge_skills(existing: Any, incoming: Any) -> str | None:
+    skills = {
+        skill.casefold(): skill
+        for value in (existing, incoming)
+        for skill in _skill_items(value)
+    }
+    return json.dumps(sorted(skills.values(), key=str.casefold)) if skills else None
+
+
+def _skill_items(value: Any) -> list[str]:
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return []
+        try:
+            parsed = json.loads(value)
+        except ValueError:
+            parsed = None
+        value = parsed if isinstance(parsed, list) else re.split(r"[;,]", value)
+    if not isinstance(value, (list, tuple, set)):
+        return []
+    return [skill.strip() for skill in map(str, value) if skill.strip()]

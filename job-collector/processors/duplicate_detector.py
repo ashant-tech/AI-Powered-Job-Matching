@@ -3,10 +3,20 @@ Duplicate Detector - Detect and remove duplicate job postings
 """
 import hashlib
 import re
+import os
+import sys
 from urllib.parse import urlsplit, urlunsplit
 
 from difflib import SequenceMatcher
 from typing import List
+
+# The collector shares deduplication rules with the backend ingestion service.
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend"))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+from app.services.job_deduplication import are_duplicate_jobs
+
 
 class DuplicateDetector:
     def __init__(self, similarity_threshold: float = 0.85):
@@ -21,13 +31,32 @@ class DuplicateDetector:
         for job in jobs:
             signatures = self._generate_job_signatures(job)
             
-            if seen_signatures.isdisjoint(signatures):
+            duplicate_index = next(
+                (index for index, existing in enumerate(unique_jobs) if are_duplicate_jobs(job, existing)),
+                None,
+            )
+            if seen_signatures.isdisjoint(signatures) and duplicate_index is None:
                 seen_signatures.update(signatures)
                 unique_jobs.append(job)
             else:
                 print(f"Duplicate job found: {job['title']} at {job['company']}")
+                if duplicate_index is not None and self._record_quality(job) > self._record_quality(unique_jobs[duplicate_index]):
+                    unique_jobs[duplicate_index] = job
         
         return unique_jobs
+
+    @staticmethod
+    def _record_quality(job: dict) -> int:
+        apply_url = job.get('apply_url') or job.get('source_url') or job.get('url') or ''
+        source = str(job.get('source') or '').lower()
+        direct_link = bool(apply_url) and 't.me/' not in apply_url.lower()
+        return (
+            (100 if direct_link else 0)
+            + min(len(str(job.get('description') or '')), 4000)
+            + min(len(str(job.get('requirements') or '')), 1000)
+            + min(len(str(job.get('skills') or '')), 500)
+            + (50 if 'telegram' not in source else 0)
+        )
     
     def _generate_job_signature(self, job: dict) -> str:
         """Generate a unique signature for a job"""
